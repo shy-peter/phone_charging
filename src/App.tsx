@@ -2,7 +2,7 @@ import {
   BarChart3,
   Menu,
 } from 'lucide-react';
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import RadialChart1 from './components/RadialChart1';
 import RadialChart2 from './components/RadialChart2';
@@ -207,8 +207,6 @@ function App() {
   const [opsConsoleReturnTab, setOpsConsoleReturnTab] = useState('agent-login');
   const lastOpsConsoleToastDeviceIdRef = useRef<string | null>(null);
   const opsConsoleSeenRef = useRef(false);
-  const pollMsFast = import.meta.env.PROD ? 5000 : 2000;
-  const pollMsNormal = import.meta.env.PROD ? 15000 : 5000;
 
   useEffect(() => {
     if (activeTab !== 'ops-console') return;
@@ -398,36 +396,36 @@ function App() {
     refreshDevicesFromAppwrite();
     const poll = setInterval(() => {
       refreshDevicesFromAppwrite();
-    }, pollMsFast);
+    }, 2000);
     return () => clearInterval(poll);
-  }, [refreshDevicesFromAppwrite, pollMsFast]);
+  }, [refreshDevicesFromAppwrite]);
 
   useEffect(() => {
     if (!appwriteAgentsEnabled) return;
     refreshAgentsFromAppwrite();
     const poll = setInterval(() => {
       refreshAgentsFromAppwrite();
-    }, pollMsNormal);
+    }, 5000);
     return () => clearInterval(poll);
-  }, [refreshAgentsFromAppwrite, pollMsNormal]);
+  }, [refreshAgentsFromAppwrite]);
 
   useEffect(() => {
     if (!appwritePowerBanksEnabled) return;
     refreshPowerBanksFromAppwrite();
     const poll = setInterval(() => {
       refreshPowerBanksFromAppwrite();
-    }, pollMsNormal);
+    }, 5000);
     return () => clearInterval(poll);
-  }, [refreshPowerBanksFromAppwrite, pollMsNormal]);
+  }, [refreshPowerBanksFromAppwrite]);
 
   useEffect(() => {
     if (!appwriteRentalsEnabled) return;
     refreshRentalsFromAppwrite();
     const poll = setInterval(() => {
       refreshRentalsFromAppwrite();
-    }, pollMsNormal);
+    }, 5000);
     return () => clearInterval(poll);
-  }, [refreshRentalsFromAppwrite, pollMsNormal]);
+  }, [refreshRentalsFromAppwrite]);
 
   const refreshDevicesFromLocalApi = useCallback(async () => {
     try {
@@ -460,9 +458,9 @@ function App() {
     refreshDevicesFromLocalApi();
     const poll = setInterval(() => {
       refreshDevicesFromLocalApi();
-    }, pollMsFast);
+    }, 2000);
     return () => clearInterval(poll);
-  }, [supabaseEnabled, localApiEnabled, refreshDevicesFromLocalApi, pollMsFast]);
+  }, [supabaseEnabled, localApiEnabled, refreshDevicesFromLocalApi]);
 
   const refreshDevicesFromSupabase = useCallback(async () => {
     if (!supabase) return;
@@ -493,7 +491,7 @@ function App() {
     refreshDevicesFromSupabase();
     const poll = setInterval(() => {
       refreshDevicesFromSupabase();
-    }, pollMsNormal);
+    }, 5000);
 
     const channel = sb
       .channel('devices-sync')
@@ -510,7 +508,7 @@ function App() {
       clearInterval(poll);
       sb.removeChannel(channel);
     };
-  }, [refreshDevicesFromSupabase, pollMsNormal]);
+  }, [refreshDevicesFromSupabase]);
 
   const handleHandover = (device: RegisteredDevice) => {
     // Remove from active devices and add to history
@@ -645,9 +643,7 @@ function App() {
       if (parsed && typeof parsed === 'object' && (parsed.id || parsed.rentalId)) {
         return { id: String(parsed.id || parsed.rentalId) };
       }
-    } catch (e) {
-      void e;
-    }
+    } catch {}
     return { id: trimmed };
   };
 
@@ -912,45 +908,50 @@ function App() {
     setAgentRegPin('');
   };
 
-  const tabs = useMemo(
-    () => [
-      { id: 'daily-summary', label: 'Daily Summary' },
-      { id: 'ops-console', label: 'Ops Console' },
-      { id: 'dashboard', label: 'Dashboard' },
-      { id: 'device-registration', label: 'Device Registration' },
-      { id: 'device-charging', label: 'Device Charging' },
-      { id: 'retrieve-phone', label: 'Retrieve Phone' },
-      { id: 'retrieved-list', label: 'Total Charged' },
-      { id: 'rent-power', label: 'Rent Power' },
-      { id: 'total-rentals', label: 'Total Rentals' },
-      { id: 'agent-login', label: 'Agent Login' },
-      { id: 'agent-signup', label: 'Agent Sign Up' },
-      { id: 'admin', label: 'Admin Oversight' },
-    ],
-    [],
-  );
+  const tabs = [
+    { id: 'daily-summary', label: 'Daily Summary' },
+    { id: 'ops-console', label: 'Ops Console' },
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'device-registration', label: 'Device Registration' },
+    { id: 'device-charging', label: 'Device Charging' },
+    { id: 'retrieve-phone', label: 'Retrieve Phone' },
+    { id: 'retrieved-list', label: 'Total Charged' },
+    { id: 'rent-power', label: 'Rent Power' },
+    { id: 'total-rentals', label: 'Total Rentals' },
+    { id: 'agent-login', label: 'Agent Login' },
+    { id: 'agent-signup', label: 'Agent Sign Up' },
+    { id: 'admin', label: 'Admin Oversight' },
+  ];
 
   const role = agentSession?.role;
   const canSeeAllStats = !!isAdmin || role === 'agent-audit';
   const canPerformActions = !!isAdmin || role === 'agent-sales';
   const canSeeDailySummary = !!isAdmin || role === 'agent-sales' || role === 'view-only';
 
-  const visibleTabIds = useMemo(() => {
-    if (isAdmin) return new Set(tabs.map((t) => t.id));
-    if (role === 'agent-sales') return new Set(['daily-summary', 'ops-console', 'device-registration', 'retrieve-phone', 'agent-login']);
-    if (role === 'view-only') return new Set(['daily-summary', 'ops-console', 'agent-login']);
-    if (role === 'agent-audit') return new Set(['ops-console', 'dashboard', 'device-charging', 'retrieved-list', 'total-rentals', 'admin', 'agent-login']);
+  const visibleTabIds = (() => {
+    if (isAdmin) {
+      return new Set(tabs.map((t) => t.id));
+    }
+    if (role === 'agent-sales') {
+      return new Set(['daily-summary', 'ops-console', 'device-registration', 'retrieve-phone', 'agent-login']);
+    }
+    if (role === 'view-only') {
+      return new Set(['daily-summary', 'ops-console', 'agent-login']);
+    }
+    if (role === 'agent-audit') {
+      return new Set(['ops-console', 'dashboard', 'device-charging', 'retrieved-list', 'total-rentals', 'admin', 'agent-login']);
+    }
     return new Set(['ops-console', 'agent-login', 'agent-signup', 'admin']);
-  }, [isAdmin, role, tabs]);
+  })();
 
-  const visibleTabs = useMemo(() => tabs.filter((t) => visibleTabIds.has(t.id)), [tabs, visibleTabIds]);
+  const visibleTabs = tabs.filter((t) => visibleTabIds.has(t.id));
 
   useEffect(() => {
     const allowed = visibleTabs.map((t) => t.id);
     if (allowed.includes(activeTab)) return;
     const first = allowed[0];
     if (first) setActiveTab(first);
-  }, [activeTab, visibleTabs]);
+  }, [activeTab, role, isAdmin]);
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -983,6 +984,8 @@ function App() {
       setActiveTab(tabId);
     }
   };
+
+  console.log('App render check: app is mounting');
 
   const renderTabContent = () => {
     if (activeTab === 'agent-login') {
