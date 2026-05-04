@@ -42,9 +42,17 @@ interface RentPowerProps {
   powerBanks: PowerBank[];
   onAddPowerBank: (powerBank: PowerBank) => void;
   onRent: (rental: PowerBankRental) => void;
+  canAddPowerBank?: boolean;
+  canRent?: boolean;
 }
 
-export default function RentPower({ powerBanks, onAddPowerBank, onRent }: RentPowerProps) {
+export default function RentPower({
+  powerBanks,
+  onAddPowerBank,
+  onRent,
+  canAddPowerBank = true,
+  canRent = true,
+}: RentPowerProps) {
   const [selectedPB, setSelectedPB] = useState<PowerBank | null>(null);
   const [userName, setUserName] = useState("");
   const [userPhone, setUserPhone] = useState("");
@@ -227,8 +235,14 @@ export default function RentPower({ powerBanks, onAddPowerBank, onRent }: RentPo
         </div>
         <button
           type="button"
-          onClick={() => setShowAddPowerBank(true)}
-          className="bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-700 transition-all shadow-md"
+          onClick={() => {
+            if (!canAddPowerBank) return;
+            setShowAddPowerBank(true);
+          }}
+          disabled={!canAddPowerBank}
+          className={`bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md ${
+            canAddPowerBank ? "hover:bg-emerald-700" : "opacity-50 cursor-not-allowed"
+          }`}
         >
           Add Power Bank
         </button>
@@ -247,8 +261,11 @@ export default function RentPower({ powerBanks, onAddPowerBank, onRent }: RentPo
             
             <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-50">
               <button
-                onClick={() => setSelectedPB(pb)}
-                disabled={pb.quantityAvailable <= 0}
+                onClick={() => {
+                  if (!canRent) return;
+                  setSelectedPB(pb);
+                }}
+                disabled={!canRent || pb.quantityAvailable <= 0}
                 className="w-full bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-700 transition-all shadow-md disabled:opacity-50"
               >
                 Hire

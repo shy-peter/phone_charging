@@ -6,12 +6,14 @@ interface DeviceChargingProps {
   devices: RegisteredDevice[];
   isAdmin: boolean;
   setIsAdmin: (isAdmin: boolean) => void;
+  showAdminToggle?: boolean;
 }
 
 export default function DeviceCharging({
   devices,
   isAdmin,
   setIsAdmin,
+  showAdminToggle = true,
 }: DeviceChargingProps) {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [password, setPassword] = useState("");
@@ -79,23 +81,27 @@ export default function DeviceCharging({
     <div className="bg-white rounded-xl shadow-sm p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-gray-800">Device Charging</h2>
-        <button
-          onClick={() =>
-            isAdmin ? setIsAdmin(false) : setShowPasswordModal(true)
-          }
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-            isAdmin
-              ? "bg-emerald-50 text-blue-500 border border-emerald-200"
-              : "bg-gray-100 text-blue-500 hover:bg-gray-200"
-          }`}
-        >
-          {isAdmin ? (
-            <ShieldCheck className="w-4 h-4" />
-          ) : (
-            <Lock className="w-4 h-4" />
-          )}
-          {isAdmin ? "Admin View Active" : "View as Admin"}
-        </button>
+        {showAdminToggle ? (
+          <button
+            onClick={() =>
+              isAdmin ? setIsAdmin(false) : setShowPasswordModal(true)
+            }
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+              isAdmin
+                ? "bg-emerald-50 text-blue-500 border border-emerald-200"
+                : "bg-gray-100 text-blue-500 hover:bg-gray-200"
+            }`}
+          >
+            {isAdmin ? (
+              <ShieldCheck className="w-4 h-4" />
+            ) : (
+              <Lock className="w-4 h-4" />
+            )}
+            {isAdmin ? "Admin View Active" : "View as Admin"}
+          </button>
+        ) : (
+          <div />
+        )}
       </div>
 
       <div
@@ -240,7 +246,7 @@ export default function DeviceCharging({
         </div>
       )}
 
-      {showPasswordModal && (
+      {showAdminToggle && showPasswordModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full animate-in fade-in zoom-in duration-200">
             <div className="flex flex-col items-center text-center mb-6">

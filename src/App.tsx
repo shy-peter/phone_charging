@@ -199,6 +199,7 @@ function App() {
   const [agentLoginUsername, setAgentLoginUsername] = useState("");
   const [agentLoginPassword, setAgentLoginPassword] = useState("");
   const [agentLoginError, setAgentLoginError] = useState("");
+  const [agentMenuOpen, setAgentMenuOpen] = useState(false);
 
   const [agentRegCode, setAgentRegCode] = useState("");
   const [agentRegName, setAgentRegName] = useState("");
@@ -1176,8 +1177,13 @@ function App() {
       return new Set([
         "daily-summary",
         "ops-console",
+        "dashboard",
         "device-registration",
+        "device-charging",
+        "rent-power",
         "retrieve-phone",
+        "retrieved-list",
+        "total-rentals",
         "agent-login",
       ]);
     }
@@ -1189,7 +1195,6 @@ function App() {
         "device-charging",
         "retrieved-list",
         "total-rentals",
-        "admin",
         "agent-login",
       ]);
     }
@@ -1200,7 +1205,6 @@ function App() {
         "device-charging",
         "retrieved-list",
         "total-rentals",
-        "admin",
         "agent-login",
       ]);
     }
@@ -1259,11 +1263,89 @@ function App() {
           )
         : null;
       return (
-        <div className="bg-white rounded-xl shadow-sm p-8 max-w-xl mx-auto border border-gray-100">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Agent Login</h2>
-          <p className="text-sm text-gray-500 mb-8">
-            Login to access the parts of the app based on your role.
-          </p>
+        <div className="bg-white rounded-xl shadow-sm p-6 max-w-6xl mx-auto border border-gray-100">
+          <div className="flex items-start justify-between gap-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Agent Login
+              </h2>
+              <p className="text-sm text-gray-500 mb-6">
+                Login to access the parts of the app based on your role.
+              </p>
+            </div>
+
+            {agentSession ? (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setAgentMenuOpen((v) => !v)}
+                  className="w-11 h-11 rounded-full bg-blue-600 text-white font-black flex items-center justify-center shadow-sm border border-blue-700"
+                >
+                  {String(currentAgent?.name || agentSession.username || "?")
+                    .trim()
+                    .slice(0, 1)
+                    .toUpperCase()}
+                </button>
+
+                {agentMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-80 rounded-2xl bg-white border border-gray-100 shadow-xl overflow-hidden z-30">
+                    <div className="p-4 bg-gray-50 border-b border-gray-100">
+                      <div className="text-xs font-black uppercase tracking-widest text-gray-400">
+                        Account
+                      </div>
+                      <div className="mt-1 text-lg font-black text-gray-900">
+                        {currentAgent?.name || agentSession.username}
+                      </div>
+                      <div className="mt-1 text-xs font-mono font-bold text-gray-600">
+                        {agentSession.username}
+                      </div>
+                    </div>
+                    <div className="p-4 space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500 font-semibold">Role</span>
+                        <span className="font-bold text-gray-900">
+                          {agentSession.role}
+                        </span>
+                      </div>
+                      {currentAgent?.email && (
+                        <div className="flex justify-between text-sm gap-3">
+                          <span className="text-gray-500 font-semibold">
+                            Email
+                          </span>
+                          <span className="font-semibold text-gray-900 truncate">
+                            {currentAgent.email}
+                          </span>
+                        </div>
+                      )}
+                      {currentAgent?.phone && (
+                        <div className="flex justify-between text-sm gap-3">
+                          <span className="text-gray-500 font-semibold">
+                            Phone
+                          </span>
+                          <span className="font-semibold text-gray-900">
+                            {currentAgent.phone}
+                          </span>
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAgentMenuOpen(false);
+                          setAgentSession(null);
+                          setAgentLoginPassword("");
+                          setAgentLoginError("");
+                          setAgentLoginUsername("");
+                        }}
+                        className="w-full bg-gray-900 hover:bg-black text-white px-4 py-2.5 rounded-xl font-black"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
 
           {!!agentLoginError && (
             <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold text-sm">
@@ -1272,40 +1354,24 @@ function App() {
           )}
 
           {agentSession ? (
-            <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 font-semibold">Username</span>
-                  <span className="font-mono font-bold text-gray-900">
-                    {agentSession.username}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm mt-2">
-                  <span className="text-gray-500 font-semibold">Role</span>
-                  <span className="font-bold text-gray-900">
-                    {agentSession.role}
-                  </span>
-                </div>
-                {currentAgent?.name && (
-                  <div className="flex justify-between text-sm mt-2">
-                    <span className="text-gray-500 font-semibold">Name</span>
-                    <span className="font-semibold text-gray-900">
-                      {currentAgent.name}
-                    </span>
-                  </div>
-                )}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <DeviceCharging
+                  devices={chargingDevices}
+                  isAdmin={false}
+                  setIsAdmin={() => {}}
+                  showAdminToggle={false}
+                />
               </div>
-              <button
-                onClick={() => {
-                  setAgentSession(null);
-                  setAgentLoginPassword("");
-                  setAgentLoginError("");
-                  setAgentLoginUsername("");
-                }}
-                className="bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-lg font-bold"
-              >
-                Logout
-              </button>
+              <div>
+                <RentPower
+                  powerBanks={powerBanks}
+                  onAddPowerBank={handleAddPowerBank}
+                  onRent={handleRentPower}
+                  canAddPowerBank={isAdmin}
+                  canRent={agentSession.role === "agent-sales" || isAdmin}
+                />
+              </div>
             </div>
           ) : (
             <form
@@ -1361,17 +1427,10 @@ function App() {
                       username: agent.username,
                       role: agent.role,
                     });
+                    setAgentMenuOpen(false);
                     setAgentLoginPassword("");
                     setAgentLoginError("");
-                    setActiveTab(
-                      agent.role === "agent-sales"
-                        ? "daily-summary"
-                        : agent.role === "view-only"
-                          ? "dashboard"
-                        : agent.role === "agent-audit"
-                          ? "dashboard"
-                          : "agent-login",
-                    );
+                    setActiveTab("agent-login");
                   })
                   .catch(() => setAgentLoginError("Login failed. Try again."));
               }}
