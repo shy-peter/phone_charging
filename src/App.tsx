@@ -21,6 +21,7 @@ import { Activity, ArrowLeft, CheckCircle2, Eye, EyeOff, Lock, ShieldCheck, Spar
 import { localApiHealthCheck, localApiListDevices, localApiPatchDevice, localApiUpsertDevice } from './utils/localApi';
 import { supabase } from './utils/supabaseClient';
 import { appwriteAgentsEnabled, appwriteCreateAgent, appwriteCreateAgentInvite, appwriteDeleteAgent, appwriteEnabled, appwriteListAgentInvites, appwriteListAgents, appwriteListDevices, appwriteListPowerBanks, appwriteListRentals, appwritePowerBanksEnabled, appwriteRentalsEnabled, appwriteUpdateAgentInvite, appwriteUpsertDevice, appwriteUpdateDevice, appwriteUpsertPowerBank, appwriteUpsertRental } from './utils/appwriteClient';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 type AgentInvite = {
   id: string;
@@ -56,7 +57,7 @@ const DEFAULT_POWER_BANKS: PowerBank[] = [
 ];
 
 function App() {
-  const [activeTab, setActiveTab] = useState('ops-console');
+  const [activeTab, setActiveTab] = useState('agent-login');
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
@@ -2378,6 +2379,15 @@ function App() {
 .petal{animation:petalFall 2s linear forwards, drift 2s ease-in-out forwards}
 .confetti{animation:confettiFall 2s linear forwards, drift 2s ease-in-out forwards}
           `}</style>
+
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-black/30" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-[520px] max-w-[92vw]">
+                <DotLottieReact src="/ops-console.lottie" loop autoplay />
+              </div>
+            </div>
+          </div>
 
           {Array.from({ length: 12 }).map((_, i) => {
             const seed = (thankYouToast.at % 997) + i * 37;
