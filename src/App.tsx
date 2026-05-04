@@ -1177,13 +1177,10 @@ function App() {
       return new Set([
         "daily-summary",
         "ops-console",
-        "dashboard",
         "device-registration",
         "device-charging",
-        "rent-power",
         "retrieve-phone",
         "retrieved-list",
-        "total-rentals",
         "agent-login",
       ]);
     }
@@ -1195,6 +1192,7 @@ function App() {
         "device-charging",
         "retrieved-list",
         "total-rentals",
+        "admin",
         "agent-login",
       ]);
     }
@@ -1205,6 +1203,7 @@ function App() {
         "device-charging",
         "retrieved-list",
         "total-rentals",
+        "admin",
         "agent-login",
       ]);
     }
