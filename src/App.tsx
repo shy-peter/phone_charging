@@ -1,32 +1,77 @@
+import { BarChart3, Menu } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  BarChart3,
-  Menu,
-} from 'lucide-react';
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import RadialChart1 from './components/RadialChart1';
-import RadialChart2 from './components/RadialChart2';
-import RadialChart3 from './components/RadialChart3';
-import RadialChart4 from './components/RadialChart4';
-import RevenueChart from './components/RevenueChart';
-import CategoryChart from './components/CategoryChart';
-import TrafficChart from './components/TrafficChart';
-import PerformanceChart from './components/PerformanceChart';
-import DeviceRegistration, { type RegisteredDevice } from './components/DeviceRegistration';
-import DeviceCharging from './components/DeviceCharging';
-import DeviceRetrieval from './components/DeviceRetrieval';
-import RentPower, { type PowerBank, type PowerBankRental } from './components/RentPower';
-import AdminDashboard from './components/AdminDashboard';
-import { Activity, ArrowLeft, CheckCircle2, Eye, EyeOff, Lock, ShieldCheck, Sparkles } from 'lucide-react';
-import { localApiHealthCheck, localApiListDevices, localApiPatchDevice, localApiUpsertDevice } from './utils/localApi';
-import { supabase } from './utils/supabaseClient';
-import { appwriteAgentsEnabled, appwriteCreateAgent, appwriteCreateAgentInvite, appwriteDeleteAgent, appwriteEnabled, appwriteListAgentInvites, appwriteListAgents, appwriteListDevices, appwriteListPowerBanks, appwriteListRentals, appwritePowerBanksEnabled, appwriteRentalsEnabled, appwriteUpdateAgentInvite, appwriteUpsertDevice, appwriteUpdateDevice, appwriteUpsertPowerBank, appwriteUpsertRental } from './utils/appwriteClient';
-import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts";
+import RadialChart1 from "./components/RadialChart1";
+import RadialChart2 from "./components/RadialChart2";
+import RadialChart3 from "./components/RadialChart3";
+import RadialChart4 from "./components/RadialChart4";
+import RevenueChart from "./components/RevenueChart";
+import CategoryChart from "./components/CategoryChart";
+import TrafficChart from "./components/TrafficChart";
+import PerformanceChart from "./components/PerformanceChart";
+import DeviceRegistration, {
+  type RegisteredDevice,
+} from "./components/DeviceRegistration";
+import DeviceCharging from "./components/DeviceCharging";
+import DeviceRetrieval from "./components/DeviceRetrieval";
+import RentPower, {
+  type PowerBank,
+  type PowerBankRental,
+} from "./components/RentPower";
+import AdminDashboard from "./components/AdminDashboard";
+import {
+  Activity,
+  ArrowLeft,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Lock,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
+import {
+  localApiHealthCheck,
+  localApiListDevices,
+  localApiPatchDevice,
+  localApiUpsertDevice,
+} from "./utils/localApi";
+import { supabase } from "./utils/supabaseClient";
+import {
+  appwriteAgentsEnabled,
+  appwriteCreateAgent,
+  appwriteCreateAgentInvite,
+  appwriteDeleteAgent,
+  appwriteEnabled,
+  appwriteListAgentInvites,
+  appwriteListAgents,
+  appwriteListDevices,
+  appwriteListPowerBanks,
+  appwriteListRentals,
+  appwritePowerBanksEnabled,
+  appwriteRentalsEnabled,
+  appwriteUpdateAgentInvite,
+  appwriteUpsertDevice,
+  appwriteUpdateDevice,
+  appwriteUpsertPowerBank,
+  appwriteUpsertRental,
+} from "./utils/appwriteClient";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
 type AgentInvite = {
   id: string;
   code: string;
-  role: 'agent-sales' | 'agent-audit' | 'view-only';
+  role: "agent-sales" | "agent-audit" | "view-only";
   createdAt: string;
   usedAt?: string | null;
   usedByUsername?: string | null;
@@ -37,8 +82,9 @@ type AgentAccount = {
   id: string;
   name: string;
   phone: string;
+  email: string;
   username: string;
-  role: 'agent-sales' | 'agent-audit' | 'view-only';
+  role: "agent-sales" | "agent-audit" | "view-only";
   passwordHash: string;
   passwordSalt: string;
   passwordSha256Hex?: string;
@@ -49,75 +95,127 @@ type AgentAccount = {
 };
 
 const DEFAULT_POWER_BANKS: PowerBank[] = [
-  { id: 'pb1', name: '20,000 mAh Oraimo Power Bank', capacity: '20,000 mAh', brand: 'Oraimo', pricePerDay: 1500, available: true, quantityAvailable: 6 },
-  { id: 'pb2', name: '15,000 mAh Itel Power Bank', capacity: '15,000 mAh', brand: 'Itel', pricePerDay: 1200, available: true, quantityAvailable: 4 },
-  { id: 'pb3', name: '30,000 mAh New Age Power Bank', capacity: '30,000 mAh', brand: 'New Age', pricePerDay: 2000, available: true, quantityAvailable: 3 },
-  { id: 'pb4', name: '10,000 mAh Samsung Power Bank', capacity: '10,000 mAh', brand: 'Samsung', pricePerDay: 1000, available: true, quantityAvailable: 5 },
-  { id: 'pb5', name: '50,000 mAh Romoss Power Bank', capacity: '50,000 mAh', brand: 'Romoss', pricePerDay: 3500, available: true, quantityAvailable: 2 },
+  {
+    id: "pb1",
+    name: "20,000 mAh Oraimo Power Bank",
+    capacity: "20,000 mAh",
+    brand: "Oraimo",
+    pricePerDay: 1500,
+    available: true,
+    quantityAvailable: 6,
+  },
+  {
+    id: "pb2",
+    name: "15,000 mAh Itel Power Bank",
+    capacity: "15,000 mAh",
+    brand: "Itel",
+    pricePerDay: 1200,
+    available: true,
+    quantityAvailable: 4,
+  },
+  {
+    id: "pb3",
+    name: "30,000 mAh New Age Power Bank",
+    capacity: "30,000 mAh",
+    brand: "New Age",
+    pricePerDay: 2000,
+    available: true,
+    quantityAvailable: 3,
+  },
+  {
+    id: "pb4",
+    name: "10,000 mAh Samsung Power Bank",
+    capacity: "10,000 mAh",
+    brand: "Samsung",
+    pricePerDay: 1000,
+    available: true,
+    quantityAvailable: 5,
+  },
+  {
+    id: "pb5",
+    name: "50,000 mAh Romoss Power Bank",
+    capacity: "50,000 mAh",
+    brand: "Romoss",
+    pricePerDay: 3500,
+    available: true,
+    quantityAvailable: 2,
+  },
 ];
 
 function App() {
-  const [activeTab, setActiveTab] = useState('agent-login');
+  const [activeTab, setActiveTab] = useState("agent-login");
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const [adminPassword, setAdminPassword] = useState('');
-  const [adminError, setAdminError] = useState('');
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminError, setAdminError] = useState("");
   const [adminRouteVisible, setAdminRouteVisible] = useState(false);
   const supabaseEnabled = !!supabase;
   const [localApiEnabled, setLocalApiEnabled] = useState(false);
   const [agentInvites, setAgentInvites] = useState<AgentInvite[]>(() => {
-    const saved = localStorage.getItem('agentInvites');
+    const saved = localStorage.getItem("agentInvites");
     if (!saved) return [];
     try {
       const parsed = JSON.parse(saved);
       return (Array.isArray(parsed) ? parsed : []).map((i: any) => ({
         ...i,
-        role: (i?.role || 'agent-sales') as AgentInvite['role'],
+        role: (i?.role || "agent-sales") as AgentInvite["role"],
       }));
     } catch {
       return [];
     }
   });
   const [agents, setAgents] = useState<AgentAccount[]>(() => {
-    const saved = localStorage.getItem('agents');
+    const saved = localStorage.getItem("agents");
     if (!saved) return [];
     try {
       const parsed = JSON.parse(saved);
       return (Array.isArray(parsed) ? parsed : []).map((a: any) => ({
         ...a,
-        role: (a?.role || 'agent-sales') as AgentAccount['role'],
+        role: (a?.role || "agent-sales") as AgentAccount["role"],
+        email: String(a?.email || ""),
       }));
     } catch {
       return [];
     }
   });
 
-  const [agentSession, setAgentSession] = useState<{ username: string; role: AgentAccount['role'] } | null>(() => {
-    const saved = localStorage.getItem('agentSession');
+  const [agentSession, setAgentSession] = useState<{
+    username: string;
+    role: AgentAccount["role"];
+  } | null>(() => {
+    const saved = localStorage.getItem("agentSession");
     if (!saved) return null;
     try {
       const parsed = JSON.parse(saved);
       if (!parsed?.username || !parsed?.role) return null;
-      return { username: String(parsed.username), role: parsed.role as AgentAccount['role'] };
+      return {
+        username: String(parsed.username),
+        role: parsed.role as AgentAccount["role"],
+      };
     } catch {
       return null;
     }
   });
-  const [agentLoginUsername, setAgentLoginUsername] = useState('');
-  const [agentLoginPassword, setAgentLoginPassword] = useState('');
-  const [agentLoginError, setAgentLoginError] = useState('');
+  const [agentLoginUsername, setAgentLoginUsername] = useState("");
+  const [agentLoginPassword, setAgentLoginPassword] = useState("");
+  const [agentLoginError, setAgentLoginError] = useState("");
 
-  const [agentRegCode, setAgentRegCode] = useState('');
-  const [agentRegName, setAgentRegName] = useState('');
-  const [agentRegPhone, setAgentRegPhone] = useState('');
-  const [agentRegUsername, setAgentRegUsername] = useState('');
-  const [agentRegPassword, setAgentRegPassword] = useState('');
-  const [agentRegPin, setAgentRegPin] = useState('');
-  const [agentRegRole, setAgentRegRole] = useState<'agent-sales' | 'agent-audit' | 'view-only'>('agent-sales');
-  const [agentRegError, setAgentRegError] = useState('');
-  const [agentRegSuccess, setAgentRegSuccess] = useState('');
-  const [registeredDevices, setRegisteredDevices] = useState<RegisteredDevice[]>(() => {
-    const saved = localStorage.getItem('registeredDevices');
+  const [agentRegCode, setAgentRegCode] = useState("");
+  const [agentRegName, setAgentRegName] = useState("");
+  const [agentRegPhone, setAgentRegPhone] = useState("");
+  const [agentRegEmail, setAgentRegEmail] = useState("");
+  const [agentRegUsername, setAgentRegUsername] = useState("");
+  const [agentRegPassword, setAgentRegPassword] = useState("");
+  const [agentRegPin, setAgentRegPin] = useState("");
+  const [agentRegRole, setAgentRegRole] = useState<
+    "agent-sales" | "agent-audit" | "view-only"
+  >("agent-sales");
+  const [agentRegError, setAgentRegError] = useState("");
+  const [agentRegSuccess, setAgentRegSuccess] = useState("");
+  const [registeredDevices, setRegisteredDevices] = useState<
+    RegisteredDevice[]
+  >(() => {
+    const saved = localStorage.getItem("registeredDevices");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -133,7 +231,7 @@ function App() {
   });
 
   const [deviceHistory, setDeviceHistory] = useState<RegisteredDevice[]>(() => {
-    const saved = localStorage.getItem('deviceHistory');
+    const saved = localStorage.getItem("deviceHistory");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -150,23 +248,31 @@ function App() {
   });
 
   const [rentals, setRentals] = useState<PowerBankRental[]>(() => {
-    const saved = localStorage.getItem('powerBankRentals');
+    const saved = localStorage.getItem("powerBankRentals");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         return parsed.map((r: any) => ({
           ...r,
-          id: String(r.id || ''),
-          powerBankId: String(r.powerBankId || ''),
-          powerBankName: String(r.powerBankName || ''),
-          userName: String(r.userName || ''),
-          userPhone: String(r.userPhone || ''),
-          userAddress: String(r.userAddress || ''),
-          userPhoto: String(r.userPhoto || ''),
-          qrData: typeof r.qrData === 'string' && r.qrData ? r.qrData : JSON.stringify({ type: 'powerbank_rental', id: String(r.id || '') }),
+          id: String(r.id || ""),
+          powerBankId: String(r.powerBankId || ""),
+          powerBankName: String(r.powerBankName || ""),
+          userName: String(r.userName || ""),
+          userPhone: String(r.userPhone || ""),
+          userAddress: String(r.userAddress || ""),
+          userPhoto: String(r.userPhoto || ""),
+          qrData:
+            typeof r.qrData === "string" && r.qrData
+              ? r.qrData
+              : JSON.stringify({
+                  type: "powerbank_rental",
+                  id: String(r.id || ""),
+                }),
           rentalDate: r.rentalDate ? new Date(r.rentalDate) : new Date(),
           amountPaid: Number(r.amountPaid || 0),
-          status: (r.status === 'returned' ? 'returned' : 'active') as PowerBankRental['status'],
+          status: (r.status === "returned"
+            ? "returned"
+            : "active") as PowerBankRental["status"],
           returnedAt: r.returnedAt ? new Date(r.returnedAt) : undefined,
           returnedBy: r.returnedBy ? String(r.returnedBy) : undefined,
         })) as PowerBankRental[];
@@ -178,16 +284,16 @@ function App() {
   });
 
   const [powerBanks, setPowerBanks] = useState<PowerBank[]>(() => {
-    const saved = localStorage.getItem('powerBanks');
+    const saved = localStorage.getItem("powerBanks");
     if (!saved) return DEFAULT_POWER_BANKS;
     try {
       const parsed = JSON.parse(saved);
       if (!Array.isArray(parsed)) return DEFAULT_POWER_BANKS;
       return parsed.map((pb: any) => ({
         id: String(pb.id),
-        name: String(pb.name || ''),
-        capacity: String(pb.capacity || ''),
-        brand: String(pb.brand || ''),
+        name: String(pb.name || ""),
+        capacity: String(pb.capacity || ""),
+        brand: String(pb.brand || ""),
         pricePerDay: Number(pb.pricePerDay || 0),
         available: Boolean(pb.available ?? true),
         quantityAvailable: Number(pb.quantityAvailable ?? 0),
@@ -197,27 +303,37 @@ function App() {
       return DEFAULT_POWER_BANKS;
     }
   });
-  const [rentalReturnValue, setRentalReturnValue] = useState('');
+  const [rentalReturnValue, setRentalReturnValue] = useState("");
 
-  const [selectedRetrievedDevice, setSelectedRetrievedDevice] = useState<RegisteredDevice | null>(null);
-  const [dailySummaryView, setDailySummaryView] = useState<'chart' | 'table'>('chart');
-  const [revealedDeviceNames, setRevealedDeviceNames] = useState<Record<string, boolean>>({});
-  const [thankYouToast, setThankYouToast] = useState<{ name: string; at: number } | null>(null);
+  const [selectedRetrievedDevice, setSelectedRetrievedDevice] =
+    useState<RegisteredDevice | null>(null);
+  const [dailySummaryView, setDailySummaryView] = useState<"chart" | "table">(
+    "chart",
+  );
+  const [revealedDeviceNames, setRevealedDeviceNames] = useState<
+    Record<string, boolean>
+  >({});
+  const [thankYouToast, setThankYouToast] = useState<{
+    name: string;
+    at: number;
+  } | null>(null);
   const [opsConsoleUnlocked, setOpsConsoleUnlocked] = useState(false);
-  const [opsConsolePin, setOpsConsolePin] = useState('');
-  const [opsConsoleError, setOpsConsoleError] = useState('');
-  const [opsConsoleReturnTab, setOpsConsoleReturnTab] = useState('agent-login');
+  const [opsConsolePin, setOpsConsolePin] = useState("");
+  const [opsConsoleError, setOpsConsoleError] = useState("");
+  const [opsConsoleReturnTab, setOpsConsoleReturnTab] = useState("agent-login");
   const lastOpsConsoleToastDeviceIdRef = useRef<string | null>(null);
   const opsConsoleSeenRef = useRef(false);
 
   useEffect(() => {
-    if (activeTab !== 'ops-console') return;
+    if (activeTab !== "ops-console") return;
     if (!opsConsoleUnlocked) {
       opsConsoleSeenRef.current = false;
       lastOpsConsoleToastDeviceIdRef.current = null;
       return;
     }
-    const newest = [...registeredDevices].sort((a, b) => b.registeredAt.getTime() - a.registeredAt.getTime())[0];
+    const newest = [...registeredDevices].sort(
+      (a, b) => b.registeredAt.getTime() - a.registeredAt.getTime(),
+    )[0];
     if (!newest) return;
 
     if (!opsConsoleSeenRef.current) {
@@ -239,12 +355,15 @@ function App() {
     if (supabaseEnabled) return;
     if (localApiEnabled) return;
     try {
-      localStorage.setItem('registeredDevices', JSON.stringify(registeredDevices));
+      localStorage.setItem(
+        "registeredDevices",
+        JSON.stringify(registeredDevices),
+      );
     } catch (e) {
-      if (e instanceof Error && e.message.includes('QuotaExceededError')) {
-        alert('Storage quota exceeded. Some old data may have been removed.');
+      if (e instanceof Error && e.message.includes("QuotaExceededError")) {
+        alert("Storage quota exceeded. Some old data may have been removed.");
         // Clear old data if quota is exceeded
-        localStorage.removeItem('deviceHistory');
+        localStorage.removeItem("deviceHistory");
       }
     }
   }, [registeredDevices, supabaseEnabled, localApiEnabled]);
@@ -257,42 +376,44 @@ function App() {
     try {
       // Keep only last 500 retrieved devices to manage storage
       const limitedHistory = deviceHistory.slice(-500);
-      localStorage.setItem('deviceHistory', JSON.stringify(limitedHistory));
+      localStorage.setItem("deviceHistory", JSON.stringify(limitedHistory));
     } catch (e) {
-      console.error('Failed to save device history:', e);
+      console.error("Failed to save device history:", e);
     }
   }, [deviceHistory, supabaseEnabled, localApiEnabled]);
 
   useEffect(() => {
     if (appwriteAgentsEnabled) return;
     try {
-      localStorage.setItem('agentInvites', JSON.stringify(agentInvites));
+      localStorage.setItem("agentInvites", JSON.stringify(agentInvites));
     } catch (e) {
-      console.error('Failed to save agent invites:', e);
+      console.error("Failed to save agent invites:", e);
     }
   }, [agentInvites]);
 
   useEffect(() => {
     if (appwriteAgentsEnabled) return;
     try {
-      localStorage.setItem('agents', JSON.stringify(agents));
+      localStorage.setItem("agents", JSON.stringify(agents));
     } catch (e) {
-      console.error('Failed to save agents:', e);
+      console.error("Failed to save agents:", e);
     }
   }, [agents]);
 
   useEffect(() => {
     try {
-      if (!agentSession) localStorage.removeItem('agentSession');
-      else localStorage.setItem('agentSession', JSON.stringify(agentSession));
+      if (!agentSession) localStorage.removeItem("agentSession");
+      else localStorage.setItem("agentSession", JSON.stringify(agentSession));
     } catch (e) {
-      console.error('Failed to save agent session:', e);
+      console.error("Failed to save agent session:", e);
     }
   }, [agentSession]);
 
   useEffect(() => {
     if (!agentSession) return;
-    const stillExists = agents.some((a) => a.username.toLowerCase() === agentSession.username.toLowerCase());
+    const stillExists = agents.some(
+      (a) => a.username.toLowerCase() === agentSession.username.toLowerCase(),
+    );
     if (!stillExists) setAgentSession(null);
   }, [agents, agentSession]);
 
@@ -300,10 +421,10 @@ function App() {
     if (!appwriteEnabled) return;
     try {
       const devices = await appwriteListDevices();
-      setRegisteredDevices(devices.filter((d) => d.status === 'charging'));
-      setDeviceHistory(devices.filter((d) => d.status === 'completed'));
+      setRegisteredDevices(devices.filter((d) => d.status === "charging"));
+      setDeviceHistory(devices.filter((d) => d.status === "completed"));
     } catch (e) {
-      console.error('Appwrite sync failed:', e);
+      console.error("Appwrite sync failed:", e);
     }
   }, []);
 
@@ -317,33 +438,44 @@ function App() {
 
       const parsedInvites: AgentInvite[] = (invites || []).map((row: any) => ({
         id: row.id,
-        code: String(row.code || ''),
-        role: (row.role || 'agent-sales') as AgentInvite['role'],
-        createdAt: String(row.createdAt || row.$createdAt || new Date().toISOString()),
+        code: String(row.code || ""),
+        role: (row.role || "agent-sales") as AgentInvite["role"],
+        createdAt: String(
+          row.createdAt || row.$createdAt || new Date().toISOString(),
+        ),
         usedAt: row.usedAt ?? null,
         usedByUsername: row.usedByUsername ?? null,
         usedByName: row.usedByName ?? null,
       }));
 
-      const parsedAgents: AgentAccount[] = (agentDocs || []).map((row: any) => ({
-        id: row.id,
-        name: String(row.name || ''),
-        phone: String(row.phone || ''),
-        username: String(row.username || ''),
-        role: (row.role || 'agent-sales') as AgentAccount['role'],
-        passwordHash: String(row.passwordHash || ''),
-        passwordSalt: String(row.passwordSalt || ''),
-        passwordSha256Hex: row.passwordSha256Hex ? String(row.passwordSha256Hex) : undefined,
-        releasePinHash: String(row.releasePinHash || ''),
-        releasePinSalt: String(row.releasePinSalt || ''),
-        releasePinSha256Hex: row.releasePinSha256Hex ? String(row.releasePinSha256Hex) : undefined,
-        createdAt: String(row.createdAt || row.$createdAt || new Date().toISOString()),
-      }));
+      const parsedAgents: AgentAccount[] = (agentDocs || []).map(
+        (row: any) => ({
+          id: row.id,
+          name: String(row.name || ""),
+          phone: String(row.phone || ""),
+          email: String(row.email || ""),
+          username: String(row.username || ""),
+          role: (row.role || "agent-sales") as AgentAccount["role"],
+          passwordHash: String(row.passwordHash || ""),
+          passwordSalt: String(row.passwordSalt || ""),
+          passwordSha256Hex: row.passwordSha256Hex
+            ? String(row.passwordSha256Hex)
+            : undefined,
+          releasePinHash: String(row.releasePinHash || ""),
+          releasePinSalt: String(row.releasePinSalt || ""),
+          releasePinSha256Hex: row.releasePinSha256Hex
+            ? String(row.releasePinSha256Hex)
+            : undefined,
+          createdAt: String(
+            row.createdAt || row.$createdAt || new Date().toISOString(),
+          ),
+        }),
+      );
 
       setAgentInvites(parsedInvites);
       setAgents(parsedAgents);
     } catch (e) {
-      console.error('Appwrite agents sync failed:', e);
+      console.error("Appwrite agents sync failed:", e);
     }
   }, []);
 
@@ -352,10 +484,10 @@ function App() {
     try {
       const list = await appwriteListPowerBanks();
       const normalized: PowerBank[] = (list || []).map((pb: any) => ({
-        id: String(pb.id || pb.$id || ''),
-        name: String(pb.name || ''),
-        capacity: String(pb.capacity || ''),
-        brand: String(pb.brand || ''),
+        id: String(pb.id || pb.$id || ""),
+        name: String(pb.name || ""),
+        capacity: String(pb.capacity || ""),
+        brand: String(pb.brand || ""),
         pricePerDay: Number(pb.pricePerDay || 0),
         available: Boolean(pb.available ?? true),
         quantityAvailable: Number(pb.quantityAvailable ?? 0),
@@ -363,7 +495,7 @@ function App() {
       }));
       setPowerBanks(normalized.length ? normalized : DEFAULT_POWER_BANKS);
     } catch (e) {
-      console.error('Appwrite power banks sync failed:', e);
+      console.error("Appwrite power banks sync failed:", e);
     }
   }, []);
 
@@ -373,23 +505,31 @@ function App() {
       const list = await appwriteListRentals();
       const parsed: PowerBankRental[] = (list || []).map((r: any) => ({
         ...r,
-        id: String(r.id || r.$id || ''),
-        powerBankId: String(r.powerBankId || ''),
-        powerBankName: String(r.powerBankName || ''),
-        userName: String(r.userName || ''),
-        userPhone: String(r.userPhone || ''),
-        userAddress: String(r.userAddress || ''),
-        userPhoto: String(r.userPhoto || ''),
-        qrData: typeof r.qrData === 'string' && r.qrData ? r.qrData : JSON.stringify({ type: 'powerbank_rental', id: String(r.id || r.$id || '') }),
+        id: String(r.id || r.$id || ""),
+        powerBankId: String(r.powerBankId || ""),
+        powerBankName: String(r.powerBankName || ""),
+        userName: String(r.userName || ""),
+        userPhone: String(r.userPhone || ""),
+        userAddress: String(r.userAddress || ""),
+        userPhoto: String(r.userPhoto || ""),
+        qrData:
+          typeof r.qrData === "string" && r.qrData
+            ? r.qrData
+            : JSON.stringify({
+                type: "powerbank_rental",
+                id: String(r.id || r.$id || ""),
+              }),
         rentalDate: r.rentalDate ? new Date(r.rentalDate) : new Date(),
         amountPaid: Number(r.amountPaid || 0),
-        status: (r.status === 'returned' ? 'returned' : 'active') as PowerBankRental['status'],
+        status: (r.status === "returned"
+          ? "returned"
+          : "active") as PowerBankRental["status"],
         returnedAt: r.returnedAt ? new Date(r.returnedAt) : undefined,
         returnedBy: r.returnedBy ? String(r.returnedBy) : undefined,
       }));
       setRentals(parsed);
     } catch (e) {
-      console.error('Appwrite rentals sync failed:', e);
+      console.error("Appwrite rentals sync failed:", e);
     }
   }, []);
 
@@ -432,8 +572,8 @@ function App() {
   const refreshDevicesFromLocalApi = useCallback(async () => {
     try {
       const devices = await localApiListDevices();
-      setRegisteredDevices(devices.filter((d) => d.status === 'charging'));
-      setDeviceHistory(devices.filter((d) => d.status === 'completed'));
+      setRegisteredDevices(devices.filter((d) => d.status === "charging"));
+      setDeviceHistory(devices.filter((d) => d.status === "completed"));
       setLocalApiEnabled(true);
     } catch {
       setLocalApiEnabled(false);
@@ -467,12 +607,12 @@ function App() {
   const refreshDevicesFromSupabase = useCallback(async () => {
     if (!supabase) return;
     const { data, error } = await supabase
-      .from('devices')
-      .select('*')
-      .order('registeredAt', { ascending: true });
+      .from("devices")
+      .select("*")
+      .order("registeredAt", { ascending: true });
 
     if (error) {
-      console.error('Supabase devices fetch failed:', error);
+      console.error("Supabase devices fetch failed:", error);
       return;
     }
 
@@ -482,8 +622,8 @@ function App() {
       retrievedAt: row.retrievedAt ? new Date(row.retrievedAt) : undefined,
     }));
 
-    setRegisteredDevices(parsed.filter((d) => d.status === 'charging'));
-    setDeviceHistory(parsed.filter((d) => d.status === 'completed'));
+    setRegisteredDevices(parsed.filter((d) => d.status === "charging"));
+    setDeviceHistory(parsed.filter((d) => d.status === "completed"));
   }, []);
 
   useEffect(() => {
@@ -496,10 +636,10 @@ function App() {
     }, 5000);
 
     const channel = sb
-      .channel('devices-sync')
+      .channel("devices-sync")
       .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'devices' },
+        "postgres_changes",
+        { event: "*", schema: "public", table: "devices" },
         () => {
           refreshDevicesFromSupabase();
         },
@@ -514,25 +654,23 @@ function App() {
 
   const handleHandover = (device: RegisteredDevice) => {
     // Remove from active devices and add to history
-    setRegisteredDevices((prev) => 
-      prev.filter(d => d.id !== device.id)
-    );
+    setRegisteredDevices((prev) => prev.filter((d) => d.id !== device.id));
 
     // Add to history with retrieval timestamp
     const now = new Date();
-    const retrievedAtTime = now.toLocaleString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
+    const retrievedAtTime = now.toLocaleString("en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
     });
 
     const retrievedDevice: RegisteredDevice = {
       ...device,
-      status: 'completed',
+      status: "completed",
       retrievedAt: now,
       retrievedAtTime,
     };
@@ -541,33 +679,33 @@ function App() {
 
     if (appwriteEnabled) {
       appwriteUpdateDevice(device.id, {
-        status: 'completed',
+        status: "completed",
         retrievedAt: now,
         retrievedAtTime,
         paymentStatus: retrievedDevice.paymentStatus,
         releasedBy: retrievedDevice.releasedBy,
         releaseAuthMethod: retrievedDevice.releaseAuthMethod,
-      }).catch((e) => console.error('Appwrite handover update failed:', e));
+      }).catch((e) => console.error("Appwrite handover update failed:", e));
     }
 
     if (supabase) {
       supabase
-        .from('devices')
+        .from("devices")
         .update({
-          status: 'completed',
+          status: "completed",
           retrievedAt: now.toISOString(),
           retrievedAtTime,
           paymentStatus: retrievedDevice.paymentStatus,
         })
-        .eq('id', device.id)
+        .eq("id", device.id)
         .then(({ error }) => {
-          if (error) console.error('Supabase handover update failed:', error);
+          if (error) console.error("Supabase handover update failed:", error);
         });
     }
 
     if (localApiEnabled && !supabaseEnabled) {
       localApiPatchDevice(device.id, {
-        status: 'completed',
+        status: "completed",
         retrievedAt: now.toISOString(),
         retrievedAtTime,
         paymentStatus: retrievedDevice.paymentStatus,
@@ -576,32 +714,30 @@ function App() {
   };
 
   const handlePaymentUpdate = (deviceId: string) => {
-    setRegisteredDevices((prev) => 
-      prev.map((d) => 
-        d.id === deviceId 
-          ? { ...d, paymentStatus: 'PAID' } 
-          : d
-      )
+    setRegisteredDevices((prev) =>
+      prev.map((d) =>
+        d.id === deviceId ? { ...d, paymentStatus: "PAID" } : d,
+      ),
     );
 
     if (appwriteEnabled) {
-      appwriteUpdateDevice(deviceId, { paymentStatus: 'PAID' } as any).catch((e) =>
-        console.error('Appwrite payment update failed:', e),
+      appwriteUpdateDevice(deviceId, { paymentStatus: "PAID" } as any).catch(
+        (e) => console.error("Appwrite payment update failed:", e),
       );
     }
 
     if (supabase) {
       supabase
-        .from('devices')
-        .update({ paymentStatus: 'PAID' })
-        .eq('id', deviceId)
+        .from("devices")
+        .update({ paymentStatus: "PAID" })
+        .eq("id", deviceId)
         .then(({ error }) => {
-          if (error) console.error('Supabase payment update failed:', error);
+          if (error) console.error("Supabase payment update failed:", error);
         });
     }
 
     if (localApiEnabled && !supabaseEnabled) {
-      localApiPatchDevice(deviceId, { paymentStatus: 'PAID' }).catch(() => {});
+      localApiPatchDevice(deviceId, { paymentStatus: "PAID" }).catch(() => {});
     }
   };
 
@@ -611,38 +747,56 @@ function App() {
     const current = powerBanks.find((pb) => pb.id === rental.powerBankId);
     if (current) {
       const nextQty = Math.max(0, Number(current.quantityAvailable || 0) - 1);
-      const updated: PowerBank = { ...current, quantityAvailable: nextQty, available: nextQty > 0 };
-      setPowerBanks((prev) => prev.map((pb) => (pb.id === updated.id ? updated : pb)));
+      const updated: PowerBank = {
+        ...current,
+        quantityAvailable: nextQty,
+        available: nextQty > 0,
+      };
+      setPowerBanks((prev) =>
+        prev.map((pb) => (pb.id === updated.id ? updated : pb)),
+      );
       if (appwritePowerBanksEnabled) {
-        appwriteUpsertPowerBank(updated).catch((e) => console.error('Appwrite power bank update failed:', e));
+        appwriteUpsertPowerBank(updated).catch((e) =>
+          console.error("Appwrite power bank update failed:", e),
+        );
       }
     }
 
     if (appwriteRentalsEnabled) {
-      appwriteUpsertRental(rental).catch((e) => console.error('Appwrite rental create failed:', e));
+      appwriteUpsertRental(rental).catch((e) =>
+        console.error("Appwrite rental create failed:", e),
+      );
     }
   };
 
   const handleAddPowerBank = (powerBank: PowerBank) => {
     setPowerBanks((prev) => {
       const exists = prev.some((pb) => pb.id === powerBank.id);
-      if (exists) return prev.map((pb) => (pb.id === powerBank.id ? powerBank : pb));
+      if (exists)
+        return prev.map((pb) => (pb.id === powerBank.id ? powerBank : pb));
       return [...prev, powerBank];
     });
 
     if (appwritePowerBanksEnabled) {
-      appwriteUpsertPowerBank(powerBank).catch((e) => console.error('Appwrite power bank create failed:', e));
+      appwriteUpsertPowerBank(powerBank).catch((e) =>
+        console.error("Appwrite power bank create failed:", e),
+      );
     }
   };
 
   const parseRentalLookup = (raw: string): { id?: string } => {
-    const trimmed = String(raw || '').trim();
+    const trimmed = String(raw || "").trim();
     if (!trimmed) return {};
     if (/^\d+$/.test(trimmed)) return { id: trimmed };
-    if (trimmed.startsWith('PB-RENTAL:')) return { id: trimmed.slice('PB-RENTAL:'.length).trim() };
+    if (trimmed.startsWith("PB-RENTAL:"))
+      return { id: trimmed.slice("PB-RENTAL:".length).trim() };
     try {
       const parsed = JSON.parse(trimmed);
-      if (parsed && typeof parsed === 'object' && (parsed.id || parsed.rentalId)) {
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        (parsed.id || parsed.rentalId)
+      ) {
         return { id: String(parsed.id || parsed.rentalId) };
       }
     } catch {}
@@ -655,23 +809,41 @@ function App() {
 
     const current = rentals.find((r) => String(r.id) === String(lookup.id));
     if (!current) return false;
-    if (current.status === 'returned') return true;
+    if (current.status === "returned") return true;
 
     const returnedAt = new Date();
-    const returnedBy = agentSession?.username || (isAdmin ? 'admin' : 'unknown');
-    const updatedRental: PowerBankRental = { ...current, status: 'returned', returnedAt, returnedBy };
-    setRentals((prev) => prev.map((r) => (r.id === updatedRental.id ? updatedRental : r)));
+    const returnedBy =
+      agentSession?.username || (isAdmin ? "admin" : "unknown");
+    const updatedRental: PowerBankRental = {
+      ...current,
+      status: "returned",
+      returnedAt,
+      returnedBy,
+    };
+    setRentals((prev) =>
+      prev.map((r) => (r.id === updatedRental.id ? updatedRental : r)),
+    );
     if (appwriteRentalsEnabled) {
-      appwriteUpsertRental(updatedRental).catch((e) => console.error('Appwrite rental update failed:', e));
+      appwriteUpsertRental(updatedRental).catch((e) =>
+        console.error("Appwrite rental update failed:", e),
+      );
     }
 
     const pb = powerBanks.find((p) => p.id === updatedRental.powerBankId);
     if (pb) {
       const nextQty = Math.max(0, Number(pb.quantityAvailable || 0) + 1);
-      const updatedPB: PowerBank = { ...pb, quantityAvailable: nextQty, available: nextQty > 0 };
-      setPowerBanks((prev) => prev.map((p) => (p.id === updatedPB.id ? updatedPB : p)));
+      const updatedPB: PowerBank = {
+        ...pb,
+        quantityAvailable: nextQty,
+        available: nextQty > 0,
+      };
+      setPowerBanks((prev) =>
+        prev.map((p) => (p.id === updatedPB.id ? updatedPB : p)),
+      );
       if (appwritePowerBanksEnabled) {
-        appwriteUpsertPowerBank(updatedPB).catch((e) => console.error('Appwrite power bank return update failed:', e));
+        appwriteUpsertPowerBank(updatedPB).catch((e) =>
+          console.error("Appwrite power bank return update failed:", e),
+        );
       }
     }
 
@@ -681,14 +853,19 @@ function App() {
   const handleDeleteAgent = (id: string) => {
     const agent = agents.find((a) => a.id === id);
     setAgents((prev) => prev.filter((a) => a.id !== id));
-    if (agentSession && agent && agentSession.username.toLowerCase() === String(agent.username || '').toLowerCase()) {
+    if (
+      agentSession &&
+      agent &&
+      agentSession.username.toLowerCase() ===
+        String(agent.username || "").toLowerCase()
+    ) {
       setAgentSession(null);
     }
     if (appwriteAgentsEnabled) {
       appwriteDeleteAgent(id)
         .then(() => refreshAgentsFromAppwrite())
         .catch((e) => {
-          console.error('Appwrite agent delete failed:', e);
+          console.error("Appwrite agent delete failed:", e);
           refreshAgentsFromAppwrite();
         });
     }
@@ -699,9 +876,9 @@ function App() {
     if (supabaseEnabled) return;
     if (localApiEnabled) return;
     try {
-      localStorage.setItem('powerBankRentals', JSON.stringify(rentals));
+      localStorage.setItem("powerBankRentals", JSON.stringify(rentals));
     } catch (e) {
-      console.error('Failed to save rentals:', e);
+      console.error("Failed to save rentals:", e);
     }
   }, [rentals, supabaseEnabled, localApiEnabled]);
 
@@ -710,33 +887,43 @@ function App() {
     if (supabaseEnabled) return;
     if (localApiEnabled) return;
     try {
-      localStorage.setItem('powerBanks', JSON.stringify(powerBanks));
+      localStorage.setItem("powerBanks", JSON.stringify(powerBanks));
     } catch (e) {
-      console.error('Failed to save power banks:', e);
+      console.error("Failed to save power banks:", e);
     }
   }, [powerBanks, supabaseEnabled, localApiEnabled]);
 
   const chargingDevices = registeredDevices;
   const retrievedDevices = deviceHistory;
-  
+
   // Live metrics counting from 0 based on session data
-  const totalRegisteredCount = registeredDevices.length + retrievedDevices.length;
+  const totalRegisteredCount =
+    registeredDevices.length + retrievedDevices.length;
   const totalProcessedCount = retrievedDevices.length;
-  const totalCompletedCount = retrievedDevices.length; 
-  const totalRevenueCount = retrievedDevices.reduce((sum, d) => sum + d.price, 0);
+  const totalCompletedCount = retrievedDevices.length;
+  const totalRevenueCount = retrievedDevices.reduce(
+    (sum, d) => sum + d.price,
+    0,
+  );
 
   // Breakdown for Charging Donut Chart
-  const phonesCharging = chargingDevices.filter(d => d.deviceType === 'Phone').length;
-  const powerBanksCharging = chargingDevices.filter(d => d.deviceType === 'Power Bank').length;
-  const othersCharging = chargingDevices.length - phonesCharging - powerBanksCharging;
+  const phonesCharging = chargingDevices.filter(
+    (d) => d.deviceType === "Phone",
+  ).length;
+  const powerBanksCharging = chargingDevices.filter(
+    (d) => d.deviceType === "Power Bank",
+  ).length;
+  const othersCharging =
+    chargingDevices.length - phonesCharging - powerBanksCharging;
 
   const TOTAL_SLOTS = 1000;
   const availableSlots = TOTAL_SLOTS - chargingDevices.length;
   const slotPercentage = (chargingDevices.length / TOTAL_SLOTS) * 100;
 
   const bytesToBase64 = (bytes: Uint8Array) => {
-    let binary = '';
-    for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += 1)
+      binary += String.fromCharCode(bytes[i]);
     return btoa(binary);
   };
 
@@ -751,11 +938,17 @@ function App() {
 
   const deriveHash = async (value: string, saltBase64: string) => {
     const enc = new TextEncoder();
-    const key = await crypto.subtle.importKey('raw', enc.encode(value), 'PBKDF2', false, ['deriveBits']);
+    const key = await crypto.subtle.importKey(
+      "raw",
+      enc.encode(value),
+      "PBKDF2",
+      false,
+      ["deriveBits"],
+    );
     const bits = await crypto.subtle.deriveBits(
       {
-        name: 'PBKDF2',
-        hash: 'SHA-256',
+        name: "PBKDF2",
+        hash: "SHA-256",
         salt: base64ToBytes(saltBase64),
         iterations: 100_000,
       },
@@ -767,16 +960,17 @@ function App() {
 
   const sha256Hex = async (value: string) => {
     const enc = new TextEncoder();
-    const digest = await crypto.subtle.digest('SHA-256', enc.encode(value));
+    const digest = await crypto.subtle.digest("SHA-256", enc.encode(value));
     const bytes = new Uint8Array(digest);
     return Array.from(bytes)
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
   };
 
-  const generate10DigitCode = () => String(Math.floor(1_000_000_000 + Math.random() * 9_000_000_000));
+  const generate10DigitCode = () =>
+    String(Math.floor(1_000_000_000 + Math.random() * 9_000_000_000));
 
-  const handleGenerateInvite = async (role: AgentInvite['role']) => {
+  const handleGenerateInvite = async (role: AgentInvite["role"]) => {
     const code = generate10DigitCode();
     const now = new Date().toISOString();
     const invitePayload = {
@@ -812,55 +1006,71 @@ function App() {
     if (invite && !invite.usedAt) {
       setAgentRegRole(invite.role);
     } else {
-      setAgentRegRole('agent-sales');
+      setAgentRegRole("agent-sales");
     }
   }, [agentRegCode, agentInvites]);
 
   const handleAgentSignup = async () => {
-    setAgentRegError('');
-    setAgentRegSuccess('');
+    setAgentRegError("");
+    setAgentRegSuccess("");
 
     const code = agentRegCode.trim();
     const name = agentRegName.trim();
     const phone = agentRegPhone.trim();
+    const email = agentRegEmail.trim();
     const username = agentRegUsername.trim();
     const password = agentRegPassword;
     const pin = agentRegPin.trim();
 
     if (!/^\d{10}$/.test(code)) {
-      setAgentRegError('Enter a valid 10-digit registration code');
+      setAgentRegError("Enter a valid 10-digit registration code");
       return;
     }
-    if (!name || !phone || !username) {
-      setAgentRegError('Fill in name, phone number, and username');
+    if (!name || !phone || !email || !username) {
+      setAgentRegError("Fill in name, phone number, email, and username");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setAgentRegError("Enter a valid email address");
       return;
     }
     if (password.length < 8) {
-      setAgentRegError('Password must be at least 8 characters');
+      setAgentRegError("Password must be at least 8 characters");
       return;
     }
     if (!/^\d{4}$/.test(pin)) {
-      setAgentRegError('Releasing PIN must be a 4-digit number');
+      setAgentRegError("Releasing PIN must be a 4-digit number");
       return;
     }
 
     const invite = agentInvites.find((i) => i.code === code);
     if (!invite) {
-      setAgentRegError('Invalid registration code');
+      setAgentRegError("Invalid registration code");
       return;
     }
     if (invite.usedAt) {
-      setAgentRegError('This registration code has already been used');
+      setAgentRegError("This registration code has already been used");
       return;
     }
-    if (agents.some((a) => a.username.toLowerCase() === username.toLowerCase())) {
-      setAgentRegError('Username already exists');
+    if (
+      agents.some((a) => a.username.toLowerCase() === username.toLowerCase())
+    ) {
+      setAgentRegError("Username already exists");
+      return;
+    }
+    if (agents.some((a) => String(a.email || "").toLowerCase() === email.toLowerCase())) {
+      setAgentRegError("Email already exists");
       return;
     }
 
     const passwordSalt = randomSaltBase64(16);
     const releasePinSalt = randomSaltBase64(16);
-    const [passwordHash, releasePinHash, passwordSha256Hex, releasePinSha256Hex] = await Promise.all([
+    const [
+      passwordHash,
+      releasePinHash,
+      passwordSha256Hex,
+      releasePinSha256Hex,
+    ] = await Promise.all([
       deriveHash(password, passwordSalt),
       deriveHash(pin, releasePinSalt),
       sha256Hex(`${passwordSalt}:${password}`),
@@ -871,6 +1081,7 @@ function App() {
     const agentPayload = {
       name,
       phone,
+      email,
       username,
       role: agentRegRole,
       passwordHash,
@@ -893,9 +1104,9 @@ function App() {
       await appwriteCreateAgent(agentPayload);
       await appwriteUpdateAgentInvite(invite.id, updatedInvitePayload);
       await refreshAgentsFromAppwrite();
-      setAgentRegSuccess('Agent registered successfully');
-      setAgentRegPassword('');
-      setAgentRegPin('');
+      setAgentRegSuccess("Agent registered successfully");
+      setAgentRegPassword("");
+      setAgentRegPin("");
       return;
     }
 
@@ -904,66 +1115,96 @@ function App() {
       ...agentPayload,
     };
     setAgents((prev) => [localAgent, ...prev]);
-    setAgentInvites((prev) => prev.map((i) => (i.id === invite.id ? updatedInvitePayload : i)));
-    setAgentRegSuccess('Agent registered successfully');
-    setAgentRegPassword('');
-    setAgentRegPin('');
+    setAgentInvites((prev) =>
+      prev.map((i) => (i.id === invite.id ? updatedInvitePayload : i)),
+    );
+    setAgentRegSuccess("Agent registered successfully");
+    setAgentRegPassword("");
+    setAgentRegPin("");
   };
 
   const baseTabs = [
-    { id: 'daily-summary', label: 'Daily Summary' },
-    { id: 'ops-console', label: 'Ops Console' },
-    { id: 'dashboard', label: 'Dashboard' },
-    { id: 'device-registration', label: 'Device Registration' },
-    { id: 'device-charging', label: 'Device Charging' },
-    { id: 'retrieve-phone', label: 'Retrieve Phone' },
-    { id: 'retrieved-list', label: 'Total Charged' },
-    { id: 'rent-power', label: 'Rent Power' },
-    { id: 'total-rentals', label: 'Total Rentals' },
-    { id: 'agent-login', label: 'Agent Login' },
-    { id: 'agent-signup', label: 'Agent Sign Up' },
+    { id: "daily-summary", label: "Daily Summary" },
+    { id: "ops-console", label: "Ops Console" },
+    { id: "dashboard", label: "Dashboard" },
+    { id: "device-registration", label: "Device Registration" },
+    { id: "device-charging", label: "Device Charging" },
+    { id: "retrieve-phone", label: "Retrieve Phone" },
+    { id: "retrieved-list", label: "Total Charged" },
+    { id: "rent-power", label: "Rent Power" },
+    { id: "total-rentals", label: "Total Rentals" },
+    { id: "agent-login", label: "Agent Login" },
+    { id: "agent-signup", label: "Agent Sign Up" },
   ];
 
   const role = agentSession?.role;
-  const canSeeAllStats = !!isAdmin || role === 'agent-audit';
-  const canPerformActions = !!isAdmin || role === 'agent-sales';
-  const canSeeDailySummary = !!isAdmin || role === 'agent-sales' || role === 'view-only';
+  const canSeeAllStats = !!isAdmin || role === "agent-audit" || role === "view-only";
+  const canPerformActions = !!isAdmin || role === "agent-sales";
+  const canSeeDailySummary =
+    !!isAdmin || role === "agent-sales" || role === "view-only";
 
   useEffect(() => {
     const applyHashRoute = () => {
-      const raw = (window.location.hash || '').replace(/^#/, '').trim().toLowerCase();
-      const isAdminRoute = raw === 'admin' || raw === 'admin-insight' || raw === 'admin-oversight';
+      const raw = (window.location.hash || "")
+        .replace(/^#/, "")
+        .trim()
+        .toLowerCase();
+      const isAdminRoute =
+        raw === "admin" || raw === "admin-insight" || raw === "admin-oversight";
       setAdminRouteVisible(isAdminRoute);
       if (isAdminRoute) {
-        setActiveTab('admin');
-        if (!isAdmin && role !== 'agent-audit') setShowAdminLogin(true);
+        setActiveTab("admin");
+        if (!isAdmin && role !== "agent-audit" && role !== "view-only") setShowAdminLogin(true);
       }
     };
 
     applyHashRoute();
-    window.addEventListener('hashchange', applyHashRoute);
-    return () => window.removeEventListener('hashchange', applyHashRoute);
+    window.addEventListener("hashchange", applyHashRoute);
+    return () => window.removeEventListener("hashchange", applyHashRoute);
   }, [isAdmin, role]);
 
   const tabs =
-    adminRouteVisible || activeTab === 'admin'
-      ? [...baseTabs, { id: 'admin', label: 'Admin Oversight' }]
+    adminRouteVisible || activeTab === "admin"
+      ? [...baseTabs, { id: "admin", label: "Admin Oversight" }]
       : baseTabs;
 
   const visibleTabIds = (() => {
     if (isAdmin) {
       return new Set(tabs.map((t) => t.id));
     }
-    if (role === 'agent-sales') {
-      return new Set(['daily-summary', 'ops-console', 'device-registration', 'retrieve-phone', 'agent-login']);
+    if (role === "agent-sales") {
+      return new Set([
+        "daily-summary",
+        "ops-console",
+        "device-registration",
+        "retrieve-phone",
+        "agent-login",
+      ]);
     }
-    if (role === 'view-only') {
-      return new Set(['daily-summary', 'ops-console', 'agent-login']);
+    if (role === "view-only") {
+      return new Set([
+        "daily-summary",
+        "ops-console",
+        "dashboard",
+        "device-charging",
+        "retrieved-list",
+        "total-rentals",
+        "admin",
+        "agent-login",
+      ]);
     }
-    if (role === 'agent-audit') {
-      return new Set(['ops-console', 'dashboard', 'device-charging', 'retrieved-list', 'total-rentals', 'admin', 'agent-login']);
+    if (role === "agent-audit") {
+      return new Set([
+        "ops-console",
+        "dashboard",
+        "device-charging",
+        "retrieved-list",
+        "total-rentals",
+        "admin",
+        "agent-login",
+      ]);
     }
-    return new Set(['ops-console', 'agent-login', 'agent-signup', 'admin']);
+    return new Set(["ops-console", "agent-login", "agent-signup", "admin"]);
   })();
 
   const visibleTabs = tabs.filter((t) => visibleTabIds.has(t.id));
@@ -977,45 +1218,52 @@ function App() {
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminPassword === '12345') {
+    if (adminPassword === "12345") {
       setIsAdmin(true);
       setShowAdminLogin(false);
-      setAdminPassword('');
-      setAdminError('');
+      setAdminPassword("");
+      setAdminError("");
     } else {
-      setAdminError('Invalid password. Please try again.');
+      setAdminError("Invalid password. Please try again.");
     }
   };
 
   const handleTabClick = (tabId: string) => {
     if (!visibleTabIds.has(tabId)) {
-      alert('Access denied');
+      alert("Access denied");
       return;
     }
-    if (tabId === 'ops-console') {
-      if (activeTab !== 'ops-console') setOpsConsoleReturnTab(activeTab);
+    if (tabId === "ops-console") {
+      if (activeTab !== "ops-console") setOpsConsoleReturnTab(activeTab);
       setOpsConsoleUnlocked(false);
-      setOpsConsolePin('');
-      setOpsConsoleError('');
+      setOpsConsolePin("");
+      setOpsConsoleError("");
       setActiveTab(tabId);
       return;
     }
-    if (tabId === 'admin' && !isAdmin && role !== 'agent-audit') {
+    if (tabId === "admin" && !isAdmin && role !== "agent-audit" && role !== "view-only") {
       setShowAdminLogin(true);
     } else {
       setActiveTab(tabId);
     }
   };
 
-  console.log('App render check: app is mounting');
+  console.log("App render check: app is mounting");
 
   const renderTabContent = () => {
-    if (activeTab === 'agent-login') {
-      const currentAgent = agentSession ? agents.find((a) => a.username.toLowerCase() === agentSession.username.toLowerCase()) : null;
+    if (activeTab === "agent-login") {
+      const currentAgent = agentSession
+        ? agents.find(
+            (a) =>
+              a.username.toLowerCase() === agentSession.username.toLowerCase(),
+          )
+        : null;
       return (
         <div className="bg-white rounded-xl shadow-sm p-8 max-w-xl mx-auto border border-gray-100">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Agent Login</h2>
-          <p className="text-sm text-gray-500 mb-8">Login to access the parts of the app based on your role.</p>
+          <p className="text-sm text-gray-500 mb-8">
+            Login to access the parts of the app based on your role.
+          </p>
 
           {!!agentLoginError && (
             <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold text-sm">
@@ -1028,25 +1276,31 @@ function App() {
               <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500 font-semibold">Username</span>
-                  <span className="font-mono font-bold text-gray-900">{agentSession.username}</span>
+                  <span className="font-mono font-bold text-gray-900">
+                    {agentSession.username}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm mt-2">
                   <span className="text-gray-500 font-semibold">Role</span>
-                  <span className="font-bold text-gray-900">{agentSession.role}</span>
+                  <span className="font-bold text-gray-900">
+                    {agentSession.role}
+                  </span>
                 </div>
                 {currentAgent?.name && (
                   <div className="flex justify-between text-sm mt-2">
                     <span className="text-gray-500 font-semibold">Name</span>
-                    <span className="font-semibold text-gray-900">{currentAgent.name}</span>
+                    <span className="font-semibold text-gray-900">
+                      {currentAgent.name}
+                    </span>
                   </div>
                 )}
               </div>
               <button
                 onClick={() => {
                   setAgentSession(null);
-                  setAgentLoginPassword('');
-                  setAgentLoginError('');
-                  setAgentLoginUsername('');
+                  setAgentLoginPassword("");
+                  setAgentLoginError("");
+                  setAgentLoginUsername("");
                 }}
                 className="bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-lg font-bold"
               >
@@ -1058,64 +1312,85 @@ function App() {
               className="space-y-4"
               onSubmit={(e) => {
                 e.preventDefault();
-                setAgentLoginError('');
+                setAgentLoginError("");
                 const u = agentLoginUsername.trim();
                 if (!u) {
-                  setAgentLoginError('Enter your username');
+                  setAgentLoginError("Enter your username or email");
                   return;
                 }
                 if (agentLoginPassword.length < 8) {
-                  setAgentLoginError('Password must be at least 8 characters');
+                  setAgentLoginError("Password must be at least 8 characters");
                   return;
                 }
-                const agent = agents.find((a) => a.username.toLowerCase() === u.toLowerCase());
+                const needle = u.toLowerCase();
+                const agent = agents.find(
+                  (a) =>
+                    a.username.toLowerCase() === needle ||
+                    String(a.email || "").toLowerCase() === needle,
+                );
                 if (!agent) {
-                  setAgentLoginError('Login details incorrect. Try again.');
+                  setAgentLoginError("Login details incorrect. Try again.");
                   return;
                 }
                 Promise.resolve()
                   .then(async () => {
                     if (agent.passwordSha256Hex && agent.passwordSalt) {
-                      const got = (await sha256Hex(`${agent.passwordSalt}:${agentLoginPassword}`)).toLowerCase();
+                      const got = (
+                        await sha256Hex(
+                          `${agent.passwordSalt}:${agentLoginPassword}`,
+                        )
+                      ).toLowerCase();
                       const expected = agent.passwordSha256Hex.toLowerCase();
                       return got === expected;
                     }
                     if (agent.passwordHash && agent.passwordSalt) {
-                      const got = await deriveHash(agentLoginPassword, agent.passwordSalt);
+                      const got = await deriveHash(
+                        agentLoginPassword,
+                        agent.passwordSalt,
+                      );
                       return got === agent.passwordHash;
                     }
                     return false;
                   })
                   .then((ok) => {
                     if (!ok) {
-                      setAgentLoginError('Login details incorrect. Try again.');
+                      setAgentLoginError("Login details incorrect. Try again.");
                       return;
                     }
-                    setAgentSession({ username: agent.username, role: agent.role });
-                    setAgentLoginPassword('');
-                    setAgentLoginError('');
+                    setAgentSession({
+                      username: agent.username,
+                      role: agent.role,
+                    });
+                    setAgentLoginPassword("");
+                    setAgentLoginError("");
                     setActiveTab(
-                      agent.role === 'agent-sales' || agent.role === 'view-only'
-                        ? 'daily-summary'
-                        : agent.role === 'agent-audit'
-                          ? 'dashboard'
-                          : 'agent-login',
+                      agent.role === "agent-sales"
+                        ? "daily-summary"
+                        : agent.role === "view-only"
+                          ? "dashboard"
+                        : agent.role === "agent-audit"
+                          ? "dashboard"
+                          : "agent-login",
                     );
                   })
-                  .catch(() => setAgentLoginError('Login failed. Try again.'));
+                  .catch(() => setAgentLoginError("Login failed. Try again."));
               }}
             >
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Username</label>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Username or Email
+                </label>
                 <input
                   value={agentLoginUsername}
                   onChange={(e) => setAgentLoginUsername(e.target.value)}
-                  placeholder="Username"
+                  placeholder="Username or email"
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Password</label>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Password
+                </label>
                 <input
                   type="password"
                   value={agentLoginPassword}
@@ -1136,7 +1411,7 @@ function App() {
       );
     }
 
-    if (activeTab === 'daily-summary') {
+    if (activeTab === "daily-summary") {
       if (!canSeeDailySummary) {
         return (
           <div className="bg-white rounded-xl shadow-sm p-8 max-w-xl mx-auto border border-gray-100">
@@ -1150,68 +1425,124 @@ function App() {
       const endOfToday = new Date(startOfToday);
       endOfToday.setDate(endOfToday.getDate() + 1);
       const todayChargingRevenue = retrievedDevices
-        .filter((d) => d.retrievedAt && d.retrievedAt >= startOfToday && d.retrievedAt < endOfToday)
+        .filter(
+          (d) =>
+            d.retrievedAt &&
+            d.retrievedAt >= startOfToday &&
+            d.retrievedAt < endOfToday,
+        )
         .reduce((sum, d) => sum + d.price, 0);
-      const todayRetrievals = retrievedDevices.filter((d) => d.retrievedAt && d.retrievedAt >= startOfToday && d.retrievedAt < endOfToday).length;
+      const todayRetrievals = retrievedDevices.filter(
+        (d) =>
+          d.retrievedAt &&
+          d.retrievedAt >= startOfToday &&
+          d.retrievedAt < endOfToday,
+      ).length;
 
-      const todayRegisteredDevices = [...chargingDevices, ...retrievedDevices].filter(
-        (d) => d.registeredAt && d.registeredAt >= startOfToday && d.registeredAt < endOfToday,
+      const todayRegisteredDevices = [
+        ...chargingDevices,
+        ...retrievedDevices,
+      ].filter(
+        (d) =>
+          d.registeredAt &&
+          d.registeredAt >= startOfToday &&
+          d.registeredAt < endOfToday,
       );
       const todayReleasedDevices = retrievedDevices.filter(
-        (d) => d.retrievedAt && d.retrievedAt >= startOfToday && d.retrievedAt < endOfToday,
+        (d) =>
+          d.retrievedAt &&
+          d.retrievedAt >= startOfToday &&
+          d.retrievedAt < endOfToday,
       );
 
       const perfMap = new Map<
         string,
-        { agent: string; registrations: number; releases: number; activities: number; registeredRevenue: number }
+        {
+          agent: string;
+          registrations: number;
+          releases: number;
+          activities: number;
+          registeredRevenue: number;
+        }
       >();
       for (const d of todayRegisteredDevices) {
-        const agent = String(d.registeredBy || '').trim() || 'Unknown';
-        const row = perfMap.get(agent) || { agent, registrations: 0, releases: 0, activities: 0, registeredRevenue: 0 };
+        const agent = String(d.registeredBy || "").trim() || "Unknown";
+        const row = perfMap.get(agent) || {
+          agent,
+          registrations: 0,
+          releases: 0,
+          activities: 0,
+          registeredRevenue: 0,
+        };
         row.registrations += 1;
-        row.registeredRevenue += typeof d.price === 'number' ? d.price : 0;
+        row.registeredRevenue += typeof d.price === "number" ? d.price : 0;
         row.activities = row.registrations + row.releases;
         perfMap.set(agent, row);
       }
       for (const d of todayReleasedDevices) {
-        const agent = String(d.releasedBy || '').trim() || 'Unknown';
-        const row = perfMap.get(agent) || { agent, registrations: 0, releases: 0, activities: 0, registeredRevenue: 0 };
+        const agent = String(d.releasedBy || "").trim() || "Unknown";
+        const row = perfMap.get(agent) || {
+          agent,
+          registrations: 0,
+          releases: 0,
+          activities: 0,
+          registeredRevenue: 0,
+        };
         row.releases += 1;
         row.activities = row.registrations + row.releases;
         perfMap.set(agent, row);
       }
-      const perfRows = Array.from(perfMap.values()).sort((a, b) => b.activities - a.activities);
-      const revenueRows = Array.from(perfMap.values()).sort((a, b) => b.registeredRevenue - a.registeredRevenue);
+      const perfRows = Array.from(perfMap.values()).sort(
+        (a, b) => b.activities - a.activities,
+      );
+      const revenueRows = Array.from(perfMap.values()).sort(
+        (a, b) => b.registeredRevenue - a.registeredRevenue,
+      );
 
-      const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#14b8a6', '#6366f1'];
+      const colors = [
+        "#3b82f6",
+        "#10b981",
+        "#f59e0b",
+        "#8b5cf6",
+        "#ef4444",
+        "#14b8a6",
+        "#6366f1",
+      ];
 
       const countsPie = [
-        { name: 'Charging Now', value: chargingDevices.length },
-        { name: 'Registered Today', value: todayRegisteredDevices.length },
-        { name: 'Retrieved Today', value: todayRetrievals },
+        { name: "Charging Now", value: chargingDevices.length },
+        { name: "Registered Today", value: todayRegisteredDevices.length },
+        { name: "Retrieved Today", value: todayRetrievals },
       ].filter((d) => d.value > 0);
 
       const activityPie = (() => {
         const rows = perfRows.filter((r) => r.activities > 0);
-        const top = rows.slice(0, 6).map((r) => ({ name: r.agent, value: r.activities }));
+        const top = rows
+          .slice(0, 6)
+          .map((r) => ({ name: r.agent, value: r.activities }));
         const rest = rows.slice(6);
         const other = rest.reduce((sum, r) => sum + r.activities, 0);
-        return other > 0 ? [...top, { name: 'Others', value: other }] : top;
+        return other > 0 ? [...top, { name: "Others", value: other }] : top;
       })();
 
       const revenuePie = (() => {
         const rows = revenueRows.filter((r) => r.registeredRevenue > 0);
-        const top = rows.slice(0, 6).map((r) => ({ name: r.agent, value: r.registeredRevenue }));
+        const top = rows
+          .slice(0, 6)
+          .map((r) => ({ name: r.agent, value: r.registeredRevenue }));
         const rest = rows.slice(6);
         const other = rest.reduce((sum, r) => sum + r.registeredRevenue, 0);
-        return other > 0 ? [...top, { name: 'Others', value: other }] : top;
+        return other > 0 ? [...top, { name: "Others", value: other }] : top;
       })();
 
       const todayBalanceByType = (() => {
         const map = new Map<string, number>();
         for (const d of todayReleasedDevices) {
-          const key = String(d.deviceType || 'Unknown');
-          map.set(key, (map.get(key) || 0) + (typeof d.price === 'number' ? d.price : 0));
+          const key = String(d.deviceType || "Unknown");
+          map.set(
+            key,
+            (map.get(key) || 0) + (typeof d.price === "number" ? d.price : 0),
+          );
         }
         return Array.from(map.entries())
           .map(([name, value]) => ({ name, value }))
@@ -1223,8 +1554,12 @@ function App() {
         <div className="bg-white rounded-xl shadow-sm p-6 max-w-3xl mx-auto border border-gray-100">
           <div className="flex items-start justify-between gap-4 mb-4">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Daily Summary</h2>
-              <p className="text-sm text-gray-500 mt-1">Today’s account balance and daily price totals.</p>
+              <h2 className="text-2xl font-bold text-gray-900">
+                Daily Summary
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Today’s account balance and daily price totals.
+              </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <span className="text-xs font-bold bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
                   {startOfToday.toLocaleDateString()}
@@ -1235,37 +1570,59 @@ function App() {
               </div>
             </div>
             <button
-              onClick={() => setDailySummaryView((v) => (v === 'chart' ? 'table' : 'chart'))}
+              onClick={() =>
+                setDailySummaryView((v) => (v === "chart" ? "table" : "chart"))
+              }
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm"
             >
-              {dailySummaryView === 'chart' ? 'Show in table' : 'Show in chart'}
+              {dailySummaryView === "chart" ? "Show in table" : "Show in chart"}
             </button>
           </div>
 
-          {dailySummaryView === 'chart' ? (
+          {dailySummaryView === "chart" ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-gray-100 p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h3 className="font-bold text-gray-900">Today Balance (by device type)</h3>
-                    <p className="text-xs text-gray-500 font-semibold">Based on devices retrieved today</p>
+                    <h3 className="font-bold text-gray-900">
+                      Today Balance (by device type)
+                    </h3>
+                    <p className="text-xs text-gray-500 font-semibold">
+                      Based on devices retrieved today
+                    </p>
                   </div>
                   <span className="text-[10px] font-black bg-green-100 text-green-700 px-2 py-1 rounded-full">
                     ₦{todayChargingRevenue.toLocaleString()}
                   </span>
                 </div>
                 {todayBalanceByType.length === 0 ? (
-                  <div className="h-[180px] flex items-center justify-center text-gray-400 font-semibold">No balance yet today</div>
+                  <div className="h-[180px] flex items-center justify-center text-gray-400 font-semibold">
+                    No balance yet today
+                  </div>
                 ) : (
-                  <div style={{ width: '100%', height: 180 }}>
+                  <div style={{ width: "100%", height: 180 }}>
                     <ResponsiveContainer>
                       <PieChart>
-                        <Pie data={todayBalanceByType} dataKey="value" nameKey="name" innerRadius={45} outerRadius={75} paddingAngle={3}>
+                        <Pie
+                          data={todayBalanceByType}
+                          dataKey="value"
+                          nameKey="name"
+                          innerRadius={45}
+                          outerRadius={75}
+                          paddingAngle={3}
+                        >
                           {todayBalanceByType.map((_, idx) => (
-                            <Cell key={idx} fill={colors[idx % colors.length]} />
+                            <Cell
+                              key={idx}
+                              fill={colors[idx % colors.length]}
+                            />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(value: any) => `₦${Number(value || 0).toLocaleString()}`} />
+                        <Tooltip
+                          formatter={(value: any) =>
+                            `₦${Number(value || 0).toLocaleString()}`
+                          }
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -1276,21 +1633,39 @@ function App() {
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <h3 className="font-bold text-gray-900">Today Counts</h3>
-                    <p className="text-xs text-gray-500 font-semibold">Charging, registrations, retrievals</p>
+                    <p className="text-xs text-gray-500 font-semibold">
+                      Charging, registrations, retrievals
+                    </p>
                   </div>
                 </div>
                 {countsPie.length === 0 ? (
-                  <div className="h-[180px] flex items-center justify-center text-gray-400 font-semibold">No activity yet today</div>
+                  <div className="h-[180px] flex items-center justify-center text-gray-400 font-semibold">
+                    No activity yet today
+                  </div>
                 ) : (
-                  <div style={{ width: '100%', height: 180 }}>
+                  <div style={{ width: "100%", height: 180 }}>
                     <ResponsiveContainer>
                       <PieChart>
-                        <Pie data={countsPie} dataKey="value" nameKey="name" innerRadius={45} outerRadius={75} paddingAngle={3}>
+                        <Pie
+                          data={countsPie}
+                          dataKey="value"
+                          nameKey="name"
+                          innerRadius={45}
+                          outerRadius={75}
+                          paddingAngle={3}
+                        >
                           {countsPie.map((_, idx) => (
-                            <Cell key={idx} fill={colors[idx % colors.length]} />
+                            <Cell
+                              key={idx}
+                              fill={colors[idx % colors.length]}
+                            />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(value: any) => Number(value || 0).toLocaleString()} />
+                        <Tooltip
+                          formatter={(value: any) =>
+                            Number(value || 0).toLocaleString()
+                          }
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -1300,22 +1675,42 @@ function App() {
               <div className="bg-white rounded-xl border border-gray-100 p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h3 className="font-bold text-gray-900">Agent Performance (Today)</h3>
-                    <p className="text-xs text-gray-500 font-semibold">Activities = registrations + releases</p>
+                    <h3 className="font-bold text-gray-900">
+                      Agent Performance (Today)
+                    </h3>
+                    <p className="text-xs text-gray-500 font-semibold">
+                      Activities = registrations + releases
+                    </p>
                   </div>
                 </div>
                 {activityPie.length === 0 ? (
-                  <div className="h-[180px] flex items-center justify-center text-gray-400 font-semibold">No activity today</div>
+                  <div className="h-[180px] flex items-center justify-center text-gray-400 font-semibold">
+                    No activity today
+                  </div>
                 ) : (
-                  <div style={{ width: '100%', height: 180 }}>
+                  <div style={{ width: "100%", height: 180 }}>
                     <ResponsiveContainer>
                       <PieChart>
-                        <Pie data={activityPie} dataKey="value" nameKey="name" innerRadius={45} outerRadius={75} paddingAngle={3}>
+                        <Pie
+                          data={activityPie}
+                          dataKey="value"
+                          nameKey="name"
+                          innerRadius={45}
+                          outerRadius={75}
+                          paddingAngle={3}
+                        >
                           {activityPie.map((_, idx) => (
-                            <Cell key={idx} fill={colors[idx % colors.length]} />
+                            <Cell
+                              key={idx}
+                              fill={colors[idx % colors.length]}
+                            />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(value: any) => Number(value || 0).toLocaleString()} />
+                        <Tooltip
+                          formatter={(value: any) =>
+                            Number(value || 0).toLocaleString()
+                          }
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -1325,25 +1720,52 @@ function App() {
               <div className="bg-white rounded-xl border border-gray-100 p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h3 className="font-bold text-gray-900">Revenue by Agent (Today)</h3>
-                    <p className="text-xs text-gray-500 font-semibold">Based on devices registered today</p>
+                    <h3 className="font-bold text-gray-900">
+                      Revenue by Agent (Today)
+                    </h3>
+                    <p className="text-xs text-gray-500 font-semibold">
+                      Based on devices registered today
+                    </p>
                   </div>
                   <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">
-                    ₦{todayRegisteredDevices.reduce((sum, d) => sum + (typeof d.price === 'number' ? d.price : 0), 0).toLocaleString()}
+                    ₦
+                    {todayRegisteredDevices
+                      .reduce(
+                        (sum, d) =>
+                          sum + (typeof d.price === "number" ? d.price : 0),
+                        0,
+                      )
+                      .toLocaleString()}
                   </span>
                 </div>
                 {revenuePie.length === 0 ? (
-                  <div className="h-[180px] flex items-center justify-center text-gray-400 font-semibold">No registrations today</div>
+                  <div className="h-[180px] flex items-center justify-center text-gray-400 font-semibold">
+                    No registrations today
+                  </div>
                 ) : (
-                  <div style={{ width: '100%', height: 180 }}>
+                  <div style={{ width: "100%", height: 180 }}>
                     <ResponsiveContainer>
                       <PieChart>
-                        <Pie data={revenuePie} dataKey="value" nameKey="name" innerRadius={45} outerRadius={75} paddingAngle={3}>
+                        <Pie
+                          data={revenuePie}
+                          dataKey="value"
+                          nameKey="name"
+                          innerRadius={45}
+                          outerRadius={75}
+                          paddingAngle={3}
+                        >
                           {revenuePie.map((_, idx) => (
-                            <Cell key={idx} fill={colors[idx % colors.length]} />
+                            <Cell
+                              key={idx}
+                              fill={colors[idx % colors.length]}
+                            />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(value: any) => `₦${Number(value || 0).toLocaleString()}`} />
+                        <Tooltip
+                          formatter={(value: any) =>
+                            `₦${Number(value || 0).toLocaleString()}`
+                          }
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -1354,19 +1776,37 @@ function App() {
             <>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-5 rounded-xl border border-gray-100 bg-gray-50">
-                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">Today Balance</div>
-                  <div className="mt-2 text-2xl font-black text-gray-900">₦{todayChargingRevenue.toLocaleString()}</div>
-                  <div className="mt-1 text-xs text-gray-500 font-semibold">Charging revenue only</div>
+                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Today Balance
+                  </div>
+                  <div className="mt-2 text-2xl font-black text-gray-900">
+                    ₦{todayChargingRevenue.toLocaleString()}
+                  </div>
+                  <div className="mt-1 text-xs text-gray-500 font-semibold">
+                    Charging revenue only
+                  </div>
                 </div>
                 <div className="p-5 rounded-xl border border-gray-100 bg-gray-50">
-                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">Charging Now</div>
-                  <div className="mt-2 text-2xl font-black text-gray-900">{chargingDevices.length}</div>
-                  <div className="mt-1 text-xs text-gray-500 font-semibold">Devices currently charging</div>
+                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Charging Now
+                  </div>
+                  <div className="mt-2 text-2xl font-black text-gray-900">
+                    {chargingDevices.length}
+                  </div>
+                  <div className="mt-1 text-xs text-gray-500 font-semibold">
+                    Devices currently charging
+                  </div>
                 </div>
                 <div className="p-5 rounded-xl border border-gray-100 bg-gray-50">
-                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">Retrieved Today</div>
-                  <div className="mt-2 text-2xl font-black text-gray-900">{todayRetrievals}</div>
-                  <div className="mt-1 text-xs text-gray-500 font-semibold">Completed handovers</div>
+                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Retrieved Today
+                  </div>
+                  <div className="mt-2 text-2xl font-black text-gray-900">
+                    {todayRetrievals}
+                  </div>
+                  <div className="mt-1 text-xs text-gray-500 font-semibold">
+                    Completed handovers
+                  </div>
                 </div>
               </div>
 
@@ -1374,8 +1814,12 @@ function App() {
                 <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
                   <div className="p-4 border-b border-gray-100 flex items-center justify-between">
                     <div>
-                      <h3 className="font-bold text-gray-900">Agent Performance (Today)</h3>
-                      <p className="text-xs text-gray-500 font-semibold">Most activities: registrations + releases</p>
+                      <h3 className="font-bold text-gray-900">
+                        Agent Performance (Today)
+                      </h3>
+                      <p className="text-xs text-gray-500 font-semibold">
+                        Most activities: registrations + releases
+                      </p>
                     </div>
                     <span className="text-xs font-bold bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
                       {startOfToday.toLocaleDateString()}
@@ -1394,15 +1838,31 @@ function App() {
                       <tbody className="divide-y divide-gray-100">
                         {perfRows.length === 0 ? (
                           <tr>
-                            <td colSpan={4} className="px-4 py-8 text-center text-gray-400">No activity today</td>
+                            <td
+                              colSpan={4}
+                              className="px-4 py-8 text-center text-gray-400"
+                            >
+                              No activity today
+                            </td>
                           </tr>
                         ) : (
                           perfRows.slice(0, 10).map((row) => (
-                            <tr key={row.agent} className="hover:bg-gray-50 transition-colors">
-                              <td className="px-4 py-3 font-semibold text-gray-900">{row.agent}</td>
-                              <td className="px-4 py-3 font-bold text-gray-700">{row.registrations}</td>
-                              <td className="px-4 py-3 font-bold text-gray-700">{row.releases}</td>
-                              <td className="px-4 py-3 font-black text-gray-900">{row.activities}</td>
+                            <tr
+                              key={row.agent}
+                              className="hover:bg-gray-50 transition-colors"
+                            >
+                              <td className="px-4 py-3 font-semibold text-gray-900">
+                                {row.agent}
+                              </td>
+                              <td className="px-4 py-3 font-bold text-gray-700">
+                                {row.registrations}
+                              </td>
+                              <td className="px-4 py-3 font-bold text-gray-700">
+                                {row.releases}
+                              </td>
+                              <td className="px-4 py-3 font-black text-gray-900">
+                                {row.activities}
+                              </td>
                             </tr>
                           ))
                         )}
@@ -1414,11 +1874,22 @@ function App() {
                 <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
                   <div className="p-4 border-b border-gray-100 flex items-center justify-between">
                     <div>
-                      <h3 className="font-bold text-gray-900">Revenue by Agent (Today)</h3>
-                      <p className="text-xs text-gray-500 font-semibold">Based on devices registered today</p>
+                      <h3 className="font-bold text-gray-900">
+                        Revenue by Agent (Today)
+                      </h3>
+                      <p className="text-xs text-gray-500 font-semibold">
+                        Based on devices registered today
+                      </p>
                     </div>
                     <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                      ₦{todayRegisteredDevices.reduce((sum, d) => sum + (typeof d.price === 'number' ? d.price : 0), 0).toLocaleString()}
+                      ₦
+                      {todayRegisteredDevices
+                        .reduce(
+                          (sum, d) =>
+                            sum + (typeof d.price === "number" ? d.price : 0),
+                          0,
+                        )
+                        .toLocaleString()}
                     </span>
                   </div>
                   <div className="overflow-x-auto">
@@ -1433,14 +1904,28 @@ function App() {
                       <tbody className="divide-y divide-gray-100">
                         {revenueRows.length === 0 ? (
                           <tr>
-                            <td colSpan={3} className="px-4 py-8 text-center text-gray-400">No registrations today</td>
+                            <td
+                              colSpan={3}
+                              className="px-4 py-8 text-center text-gray-400"
+                            >
+                              No registrations today
+                            </td>
                           </tr>
                         ) : (
                           revenueRows.slice(0, 10).map((row) => (
-                            <tr key={row.agent} className="hover:bg-gray-50 transition-colors">
-                              <td className="px-4 py-3 font-semibold text-gray-900">{row.agent}</td>
-                              <td className="px-4 py-3 font-bold text-gray-700">{row.registrations}</td>
-                              <td className="px-4 py-3 font-black text-gray-900">₦{row.registeredRevenue.toLocaleString()}</td>
+                            <tr
+                              key={row.agent}
+                              className="hover:bg-gray-50 transition-colors"
+                            >
+                              <td className="px-4 py-3 font-semibold text-gray-900">
+                                {row.agent}
+                              </td>
+                              <td className="px-4 py-3 font-bold text-gray-700">
+                                {row.registrations}
+                              </td>
+                              <td className="px-4 py-3 font-black text-gray-900">
+                                ₦{row.registeredRevenue.toLocaleString()}
+                              </td>
                             </tr>
                           ))
                         )}
@@ -1455,25 +1940,42 @@ function App() {
       );
     }
 
-    if (activeTab === 'ops-console') {
+    if (activeTab === "ops-console") {
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);
       const endOfToday = new Date(startOfToday);
       endOfToday.setDate(endOfToday.getDate() + 1);
       const todayRetrievals = retrievedDevices.filter(
-        (d) => d.retrievedAt && d.retrievedAt >= startOfToday && d.retrievedAt < endOfToday,
+        (d) =>
+          d.retrievedAt &&
+          d.retrievedAt >= startOfToday &&
+          d.retrievedAt < endOfToday,
       ).length;
 
-      const todayRegisteredDevices = [...chargingDevices, ...retrievedDevices].filter(
-        (d) => d.registeredAt && d.registeredAt >= startOfToday && d.registeredAt < endOfToday,
+      const todayRegisteredDevices = [
+        ...chargingDevices,
+        ...retrievedDevices,
+      ].filter(
+        (d) =>
+          d.registeredAt &&
+          d.registeredAt >= startOfToday &&
+          d.registeredAt < endOfToday,
       );
 
-      const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#14b8a6', '#6366f1'];
+      const colors = [
+        "#3b82f6",
+        "#10b981",
+        "#f59e0b",
+        "#8b5cf6",
+        "#ef4444",
+        "#14b8a6",
+        "#6366f1",
+      ];
 
       const todayDevicesByType = (() => {
         const map = new Map<string, number>();
         for (const d of todayRegisteredDevices) {
-          const key = String(d.deviceType || 'Unknown');
+          const key = String(d.deviceType || "Unknown");
           map.set(key, (map.get(key) || 0) + 1);
         }
         return Array.from(map.entries())
@@ -1493,8 +1995,12 @@ function App() {
                   <Sparkles className="w-5 h-5 text-blue-200" />
                 </div>
                 <div>
-                  <div className="text-xs font-black uppercase tracking-widest text-white/70">Realtime</div>
-                  <div className="text-lg font-black leading-tight">Operations Console</div>
+                  <div className="text-xs font-black uppercase tracking-widest text-white/70">
+                    Realtime
+                  </div>
+                  <div className="text-lg font-black leading-tight">
+                    Operations Console
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -1510,33 +2016,48 @@ function App() {
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <div className="text-sm font-black">Today Overview</div>
-                      <div className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Counts + balance composition</div>
+                      <div className="text-[10px] font-bold text-white/60 uppercase tracking-wider">
+                        Counts + balance composition
+                      </div>
                     </div>
                     <Activity className="w-4 h-4 text-white/60" />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="relative rounded-xl border border-white/10 bg-slate-950/30 p-3">
-                          <div className="text-[10px] font-bold text-white/60 uppercase tracking-wider mb-2">Devices by type</div>
-                          {todayDevicesByType.length === 0 ? (
-                            <div className="h-[150px] flex items-center justify-center text-white/50 font-semibold">No registrations yet today</div>
+                      <div className="text-[10px] font-bold text-white/60 uppercase tracking-wider mb-2">
+                        Devices by type
+                      </div>
+                      {todayDevicesByType.length === 0 ? (
+                        <div className="h-[150px] flex items-center justify-center text-white/50 font-semibold">
+                          No registrations yet today
+                        </div>
                       ) : (
-                        <div style={{ width: '100%', height: 150 }}>
+                        <div style={{ width: "100%", height: 150 }}>
                           <ResponsiveContainer>
                             <PieChart>
                               <Pie
-                                    data={todayDevicesByType.slice(0, 6)}
+                                data={todayDevicesByType.slice(0, 6)}
                                 dataKey="value"
                                 nameKey="name"
                                 innerRadius={35}
                                 outerRadius={55}
                                 paddingAngle={3}
                               >
-                                    {todayDevicesByType.slice(0, 6).map((_, idx) => (
-                                  <Cell key={idx} fill={colors[idx % colors.length]} />
-                                ))}
+                                {todayDevicesByType
+                                  .slice(0, 6)
+                                  .map((_, idx) => (
+                                    <Cell
+                                      key={idx}
+                                      fill={colors[idx % colors.length]}
+                                    />
+                                  ))}
                               </Pie>
-                                  <Tooltip formatter={(value: any) => Number(value || 0).toLocaleString()} />
+                              <Tooltip
+                                formatter={(value: any) =>
+                                  Number(value || 0).toLocaleString()
+                                }
+                              />
                             </PieChart>
                           </ResponsiveContainer>
                         </div>
@@ -1545,21 +2066,44 @@ function App() {
                     </div>
 
                     <div className="rounded-xl border border-white/10 bg-slate-950/30 p-3">
-                      <div className="text-[10px] font-bold text-white/60 uppercase tracking-wider mb-2">Today counts</div>
-                      <div style={{ width: '100%', height: 150 }}>
+                      <div className="text-[10px] font-bold text-white/60 uppercase tracking-wider mb-2">
+                        Today counts
+                      </div>
+                      <div style={{ width: "100%", height: 150 }}>
                         <ResponsiveContainer>
                           <BarChart
                             data={[
-                              { name: 'Charging', value: chargingDevices.length },
-                              { name: 'Registered', value: todayRegisteredDevices.length },
-                              { name: 'Retrieved', value: todayRetrievals },
+                              {
+                                name: "Charging",
+                                value: chargingDevices.length,
+                              },
+                              {
+                                name: "Registered",
+                                value: todayRegisteredDevices.length,
+                              },
+                              { name: "Retrieved", value: todayRetrievals },
                             ]}
                           >
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.08)" />
-                            <XAxis dataKey="name" stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 10 }} />
-                            <YAxis stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 10 }} />
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              vertical={false}
+                              stroke="rgba(255,255,255,0.08)"
+                            />
+                            <XAxis
+                              dataKey="name"
+                              stroke="rgba(255,255,255,0.5)"
+                              tick={{ fontSize: 10 }}
+                            />
+                            <YAxis
+                              stroke="rgba(255,255,255,0.5)"
+                              tick={{ fontSize: 10 }}
+                            />
                             <Tooltip />
-                            <Bar dataKey="value" radius={[8, 8, 0, 0]} fill="#3b82f6" />
+                            <Bar
+                              dataKey="value"
+                              radius={[8, 8, 0, 0]}
+                              fill="#3b82f6"
+                            />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -1571,7 +2115,9 @@ function App() {
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <div className="text-sm font-black">Recent Charges</div>
-                      <div className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Last 3 registrations today</div>
+                      <div className="text-[10px] font-bold text-white/60 uppercase tracking-wider">
+                        Last 3 registrations today
+                      </div>
                     </div>
                     <span className="text-[10px] font-black bg-white/10 border border-white/10 text-white/80 px-2 py-1 rounded-full">
                       {todayRegisteredDevices.length}
@@ -1580,33 +2126,58 @@ function App() {
 
                   <div className="divide-y divide-white/10 rounded-xl border border-white/10 bg-slate-950/30 overflow-hidden">
                     {[...todayRegisteredDevices]
-                      .sort((a, b) => b.registeredAt.getTime() - a.registeredAt.getTime())
+                      .sort(
+                        (a, b) =>
+                          b.registeredAt.getTime() - a.registeredAt.getTime(),
+                      )
                       .slice(0, 3)
                       .map((d) => {
                         const revealed = !!revealedDeviceNames[d.id];
                         return (
-                          <div key={d.id} className="px-3 py-2 flex items-center justify-between">
+                          <div
+                            key={d.id}
+                            className="px-3 py-2 flex items-center justify-between"
+                          >
                             <div>
-                              <div className="font-bold text-white">{d.username}</div>
-                              <div className="text-[10px] font-bold text-white/60 font-mono">{d.registeredAtTime}</div>
+                              <div className="font-bold text-white">
+                                {d.username}
+                              </div>
+                              <div className="text-[10px] font-bold text-white/60 font-mono">
+                                {d.registeredAtTime}
+                              </div>
                             </div>
                             <div className="flex items-center gap-2">
                               <div className="text-xs font-black text-white/80 bg-white/10 border border-white/10 px-2 py-1 rounded-lg">
-                                {revealed ? d.deviceName : '••••••'}
+                                {revealed ? d.deviceName : "••••••"}
                               </div>
                               <button
-                                onClick={() => setRevealedDeviceNames((prev) => ({ ...prev, [d.id]: !prev[d.id] }))}
+                                onClick={() =>
+                                  setRevealedDeviceNames((prev) => ({
+                                    ...prev,
+                                    [d.id]: !prev[d.id],
+                                  }))
+                                }
                                 className="p-2 rounded-lg bg-white/10 border border-white/10 hover:bg-white/15"
-                                aria-label={revealed ? 'Hide device name' : 'Show device name'}
+                                aria-label={
+                                  revealed
+                                    ? "Hide device name"
+                                    : "Show device name"
+                                }
                               >
-                                {revealed ? <EyeOff className="w-4 h-4 text-white/80" /> : <Eye className="w-4 h-4 text-white/80" />}
+                                {revealed ? (
+                                  <EyeOff className="w-4 h-4 text-white/80" />
+                                ) : (
+                                  <Eye className="w-4 h-4 text-white/80" />
+                                )}
                               </button>
                             </div>
                           </div>
                         );
                       })}
                     {todayRegisteredDevices.length === 0 && (
-                      <div className="px-3 py-8 text-center text-white/50 font-semibold">No registrations yet</div>
+                      <div className="px-3 py-8 text-center text-white/50 font-semibold">
+                        No registrations yet
+                      </div>
                     )}
                   </div>
                 </div>
@@ -1616,30 +2187,45 @@ function App() {
                 <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <div className="text-sm font-black">Currently Charging</div>
-                      <div className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Live slots</div>
+                      <div className="text-sm font-black">
+                        Currently Charging
+                      </div>
+                      <div className="text-[10px] font-bold text-white/60 uppercase tracking-wider">
+                        Live slots
+                      </div>
                     </div>
                     <span className="text-[10px] font-black bg-blue-500/15 border border-blue-400/20 text-blue-100 px-2 py-1 rounded-full">
                       {chargingDevices.length}
                     </span>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2 place-items-center ">
                     {chargingDevices
                       .slice()
-                      .sort((a, b) => b.registeredAt.getTime() - a.registeredAt.getTime())
+                      .sort(
+                        (a, b) =>
+                          b.registeredAt.getTime() - a.registeredAt.getTime(),
+                      )
                       .slice(0, 9)
                       .map((d) => (
                         <div
                           key={d.id}
-                          className="rounded-xl w-fit border border-white/10 bg-slate-950/30 px-2 py-2 flex flex-col items-center justify-center"
+                          className="rounded-xl w-fit  border border-white/10 bg-slate-950/30 px-2 py-2 flex flex-col items-center justify-center"
                         >
-                          <div className="text-[10px] font-black text-white/70">Slot</div>
-                          <div className="text-xs font-black text-white/60 blur-[3px] select-none">#{d.slotNumber}</div>
-                          <div className="text-[10px] font-bold text-white/60 truncate w-full text-center">{d.username}</div>
+                          <div className="text-[10px] font-black text-white/70">
+                            Slot
+                          </div>
+                          <div className="text-xs font-black text-white/60 blur-[3px] select-none">
+                            #{d.slotNumber}
+                          </div>
+                          <div className="text-[10px] font-bold text-white/60 truncate w-full text-center">
+                            {d.username}
+                          </div>
                         </div>
                       ))}
                     {chargingDevices.length === 0 && (
-                      <div className="col-span-3 py-6 text-center text-white/50 font-semibold">No devices charging</div>
+                      <div className="col-span-3 py-6 text-center text-white/50 font-semibold">
+                        No devices charging
+                      </div>
                     )}
                   </div>
                 </div>
@@ -1650,7 +2236,7 @@ function App() {
       );
     }
 
-    if (activeTab === 'dashboard') {
+    if (activeTab === "dashboard") {
       if (!canSeeAllStats && !isAdmin) {
         return (
           <div className="bg-white rounded-xl shadow-sm p-8 max-w-xl mx-auto border border-gray-100">
@@ -1663,36 +2249,54 @@ function App() {
           <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
             <div className="flex justify-between items-end mb-4">
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Slot Management</h3>
-                <p className="text-sm text-gray-500">Device charging capacity</p>
+                <h3 className="text-lg font-bold text-gray-900">
+                  Slot Management
+                </h3>
+                <p className="text-sm text-gray-500">
+                  Device charging capacity
+                </p>
               </div>
               <div className="text-right">
-                <span className="text-2xl font-bold text-blue-600">{availableSlots}</span>
-                <span className="text-gray-400 font-medium"> / {TOTAL_SLOTS}</span>
-                <p className="text-xs text-gray-400 uppercase tracking-wider font-bold mt-1">Available Slots</p>
+                <span className="text-2xl font-bold text-blue-600">
+                  {availableSlots}
+                </span>
+                <span className="text-gray-400 font-medium">
+                  {" "}
+                  / {TOTAL_SLOTS}
+                </span>
+                <p className="text-xs text-gray-400 uppercase tracking-wider font-bold mt-1">
+                  Available Slots
+                </p>
               </div>
             </div>
             <div className="w-full bg-gray-100 rounded-full h-4 overflow-hidden">
-              <div 
+              <div
                 className="bg-blue-600 h-full transition-all duration-500 ease-out"
                 style={{ width: `${slotPercentage}%` }}
               ></div>
             </div>
             <div className="flex justify-between mt-2">
-              <span className="text-xs font-bold text-gray-400">{slotPercentage.toFixed(1)}% Occupied</span>
-              <span className="text-xs font-bold text-gray-400">Total: {TOTAL_SLOTS}</span>
+              <span className="text-xs font-bold text-gray-400">
+                {slotPercentage.toFixed(1)}% Occupied
+              </span>
+              <span className="text-xs font-bold text-gray-400">
+                Total: {TOTAL_SLOTS}
+              </span>
             </div>
           </div>
 
           <main className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <RadialChart1 
-              phones={phonesCharging} 
-              powerBanks={powerBanksCharging} 
-              others={othersCharging} 
+            <RadialChart1
+              phones={phonesCharging}
+              powerBanks={powerBanksCharging}
+              others={othersCharging}
               total={chargingDevices.length}
             />
             <RadialChart2 completedCount={totalCompletedCount} />
-            <RadialChart3 totalDevices={totalRegisteredCount} processedDevices={totalProcessedCount} />
+            <RadialChart3
+              totalDevices={totalRegisteredCount}
+              processedDevices={totalProcessedCount}
+            />
             <RadialChart4 revenue={totalRevenueCount} />
           </main>
 
@@ -1709,7 +2313,7 @@ function App() {
       );
     }
 
-    if (activeTab === 'device-registration') {
+    if (activeTab === "device-registration") {
       if (!canPerformActions) {
         return (
           <div className="bg-white rounded-xl shadow-sm p-8 max-w-xl mx-auto border border-gray-100">
@@ -1721,37 +2325,41 @@ function App() {
         <DeviceRegistration
           defaultRegisteredBy={agentSession?.username}
           lockRegisteredBy={!!agentSession?.username}
+          showAgentOnReceipt={isAdmin}
           onRegister={(device) => {
             setRegisteredDevices((prev) => [...prev, device]);
             setThankYouToast({ name: device.username, at: Date.now() });
             setTimeout(() => setThankYouToast(null), 2000);
             if (appwriteEnabled) {
               appwriteUpsertDevice(device).catch((e) =>
-                console.error('Appwrite register upsert failed:', e),
+                console.error("Appwrite register upsert failed:", e),
               );
             }
             if (supabase) {
               supabase
-                .from('devices')
+                .from("devices")
                 .upsert({
                   ...device,
                   registeredAt: device.registeredAt.toISOString(),
-                  retrievedAt: device.retrievedAt ? device.retrievedAt.toISOString() : null,
+                  retrievedAt: device.retrievedAt
+                    ? device.retrievedAt.toISOString()
+                    : null,
                 })
                 .then(({ error }) => {
-                  if (error) console.error('Supabase register upsert failed:', error);
+                  if (error)
+                    console.error("Supabase register upsert failed:", error);
                 });
             }
             if (localApiEnabled && !supabaseEnabled) {
               localApiUpsertDevice(device).catch(() => {});
             }
           }}
-          occupiedSlots={chargingDevices.map(d => d.slotNumber)}
+          occupiedSlots={chargingDevices.map((d) => d.slotNumber)}
         />
       );
     }
 
-    if (activeTab === 'device-charging') {
+    if (activeTab === "device-charging") {
       if (!canSeeAllStats && !isAdmin) {
         return (
           <div className="bg-white rounded-xl shadow-sm p-8 max-w-xl mx-auto border border-gray-100">
@@ -1759,11 +2367,17 @@ function App() {
           </div>
         );
       }
-      const chargingAdminView = isAdmin || role === 'agent-audit';
-      return <DeviceCharging devices={chargingDevices} isAdmin={chargingAdminView} setIsAdmin={isAdmin ? setIsAdmin : () => {}} />;
+      const chargingAdminView = isAdmin || role === "agent-audit";
+      return (
+        <DeviceCharging
+          devices={chargingDevices}
+          isAdmin={chargingAdminView}
+          setIsAdmin={isAdmin ? setIsAdmin : () => {}}
+        />
+      );
     }
 
-    if (activeTab === 'retrieve-phone') {
+    if (activeTab === "retrieve-phone") {
       if (!canPerformActions) {
         return (
           <div className="bg-white rounded-xl shadow-sm p-8 max-w-xl mx-auto border border-gray-100">
@@ -1782,7 +2396,7 @@ function App() {
       );
     }
 
-    if (activeTab === 'retrieved-list') {
+    if (activeTab === "retrieved-list") {
       if (!canSeeAllStats && !isAdmin) {
         return (
           <div className="bg-white rounded-xl shadow-sm p-8 max-w-xl mx-auto border border-gray-100">
@@ -1794,8 +2408,12 @@ function App() {
         <div className="bg-white rounded-xl shadow-sm p-6">
           <div className="flex items-end justify-between gap-4 mb-6">
             <div>
-              <h2 className="text-xl font-bold text-gray-800">Total Charged Devices (Retrieved)</h2>
-              <p className="text-xs text-gray-500 font-semibold mt-1">Click any row to view full details</p>
+              <h2 className="text-xl font-bold text-gray-800">
+                Total Charged Devices (Retrieved)
+              </h2>
+              <p className="text-xs text-gray-500 font-semibold mt-1">
+                Click any row to view full details
+              </p>
             </div>
           </div>
           {retrievedDevices.length === 0 ? (
@@ -1810,10 +2428,18 @@ function App() {
                     <th className="py-4 font-semibold text-gray-600">User</th>
                     <th className="py-4 font-semibold text-gray-600">Device</th>
                     <th className="py-4 font-semibold text-gray-600">Type</th>
-                    <th className="py-4 font-semibold text-gray-600">Registered By</th>
-                    <th className="py-4 font-semibold text-gray-600">Released By</th>
-                    <th className="py-4 font-semibold text-gray-600">Registered At</th>
-                    <th className="py-4 font-semibold text-gray-600">Retrieved At</th>
+                    <th className="py-4 font-semibold text-gray-600">
+                      Registered By
+                    </th>
+                    <th className="py-4 font-semibold text-gray-600">
+                      Released By
+                    </th>
+                    <th className="py-4 font-semibold text-gray-600">
+                      Registered At
+                    </th>
+                    <th className="py-4 font-semibold text-gray-600">
+                      Retrieved At
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1824,19 +2450,29 @@ function App() {
                       className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors cursor-pointer"
                     >
                       <td className="py-4 text-gray-800">{device.username}</td>
-                      <td className="py-4 text-gray-800">{device.deviceName}</td>
+                      <td className="py-4 text-gray-800">
+                        {device.deviceName}
+                      </td>
                       <td className="py-4">
                         <span className="px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-bold">
                           {device.deviceType}
                         </span>
                       </td>
-                      <td className="py-4 text-gray-800">{device.registeredBy || '—'}</td>
-                      <td className="py-4 text-gray-800">{device.releasedBy || '—'}</td>
-                      <td className="py-4 text-sm text-gray-500">
-                        <div className="font-mono text-xs">{device.registeredAtTime}</div>
+                      <td className="py-4 text-gray-800">
+                        {device.registeredBy || "—"}
+                      </td>
+                      <td className="py-4 text-gray-800">
+                        {device.releasedBy || "—"}
                       </td>
                       <td className="py-4 text-sm text-gray-500">
-                        <div className="font-mono text-xs">{device.retrievedAtTime || 'N/A'}</div>
+                        <div className="font-mono text-xs">
+                          {device.registeredAtTime}
+                        </div>
+                      </td>
+                      <td className="py-4 text-sm text-gray-500">
+                        <div className="font-mono text-xs">
+                          {device.retrievedAtTime || "N/A"}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1850,8 +2486,12 @@ function App() {
               <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
                 <div className="p-5 border-b border-gray-100 flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900">Device Details</h3>
-                    <p className="text-xs text-gray-500 font-semibold mt-1">{selectedRetrievedDevice.registrationId}</p>
+                    <h3 className="text-lg font-bold text-gray-900">
+                      Device Details
+                    </h3>
+                    <p className="text-xs text-gray-500 font-semibold mt-1">
+                      {selectedRetrievedDevice.registrationId}
+                    </p>
                   </div>
                   <button
                     onClick={() => setSelectedRetrievedDevice(null)}
@@ -1873,8 +2513,12 @@ function App() {
                       <div className="w-24 h-24 rounded-xl bg-gray-100 border border-gray-100" />
                     )}
                     <div className="flex-1">
-                      <div className="text-lg font-black text-gray-900">{selectedRetrievedDevice.deviceName}</div>
-                      <div className="mt-1 text-sm text-gray-700 font-semibold">{selectedRetrievedDevice.username}</div>
+                      <div className="text-lg font-black text-gray-900">
+                        {selectedRetrievedDevice.deviceName}
+                      </div>
+                      <div className="mt-1 text-sm text-gray-700 font-semibold">
+                        {selectedRetrievedDevice.username}
+                      </div>
                       <div className="mt-2 flex flex-wrap gap-2">
                         <span className="px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-bold">
                           {selectedRetrievedDevice.deviceType}
@@ -1885,9 +2529,13 @@ function App() {
                         <span className="px-2 py-1 rounded-md bg-gray-50 text-gray-800 text-xs font-bold">
                           Slot #{selectedRetrievedDevice.slotNumber}
                         </span>
-                        <span className={`px-2 py-1 rounded-md text-xs font-bold ${
-                          selectedRetrievedDevice.paymentStatus === 'PAID' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
-                        }`}>
+                        <span
+                          className={`px-2 py-1 rounded-md text-xs font-bold ${
+                            selectedRetrievedDevice.paymentStatus === "PAID"
+                              ? "bg-green-50 text-green-700"
+                              : "bg-amber-50 text-amber-700"
+                          }`}
+                        >
                           {selectedRetrievedDevice.paymentStatus}
                         </span>
                       </div>
@@ -1895,31 +2543,63 @@ function App() {
                   </div>
 
                   <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
-                    <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Registered By</div>
-                    <div className="mt-1 font-bold text-gray-900">{selectedRetrievedDevice.registeredBy || '—'}</div>
-                    <div className="mt-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Registered At</div>
-                    <div className="mt-1 font-mono text-xs text-gray-700">{selectedRetrievedDevice.registeredAtTime}</div>
+                    <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                      Registered By
+                    </div>
+                    <div className="mt-1 font-bold text-gray-900">
+                      {selectedRetrievedDevice.registeredBy || "—"}
+                    </div>
+                    <div className="mt-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                      Registered At
+                    </div>
+                    <div className="mt-1 font-mono text-xs text-gray-700">
+                      {selectedRetrievedDevice.registeredAtTime}
+                    </div>
                   </div>
 
                   <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
-                    <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Released By</div>
-                    <div className="mt-1 font-bold text-gray-900">{selectedRetrievedDevice.releasedBy || '—'}</div>
-                    <div className="mt-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Retrieved At</div>
-                    <div className="mt-1 font-mono text-xs text-gray-700">{selectedRetrievedDevice.retrievedAtTime || '—'}</div>
+                    <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                      Released By
+                    </div>
+                    <div className="mt-1 font-bold text-gray-900">
+                      {selectedRetrievedDevice.releasedBy || "—"}
+                    </div>
+                    <div className="mt-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                      Retrieved At
+                    </div>
+                    <div className="mt-1 font-mono text-xs text-gray-700">
+                      {selectedRetrievedDevice.retrievedAtTime || "—"}
+                    </div>
                   </div>
 
                   <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
-                    <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Pickup Date</div>
-                    <div className="mt-1 font-bold text-gray-900">{selectedRetrievedDevice.pickupDate}</div>
-                    <div className="mt-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Release Method</div>
-                    <div className="mt-1 font-bold text-gray-900">{selectedRetrievedDevice.releaseAuthMethod || '—'}</div>
+                    <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                      Pickup Date
+                    </div>
+                    <div className="mt-1 font-bold text-gray-900">
+                      {selectedRetrievedDevice.pickupDate}
+                    </div>
+                    <div className="mt-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                      Release Method
+                    </div>
+                    <div className="mt-1 font-bold text-gray-900">
+                      {selectedRetrievedDevice.releaseAuthMethod || "—"}
+                    </div>
                   </div>
 
                   <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
-                    <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">QR Data</div>
-                    <div className="mt-1 font-mono text-xs text-gray-700 break-all">{selectedRetrievedDevice.qrData || '—'}</div>
-                    <div className="mt-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Fingerprint ID</div>
-                    <div className="mt-1 font-mono text-xs text-gray-700 break-all">{selectedRetrievedDevice.fingerprintId || '—'}</div>
+                    <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                      QR Data
+                    </div>
+                    <div className="mt-1 font-mono text-xs text-gray-700 break-all">
+                      {selectedRetrievedDevice.qrData || "—"}
+                    </div>
+                    <div className="mt-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                      Fingerprint ID
+                    </div>
+                    <div className="mt-1 font-mono text-xs text-gray-700 break-all">
+                      {selectedRetrievedDevice.fingerprintId || "—"}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1929,7 +2609,7 @@ function App() {
       );
     }
 
-    if (activeTab === 'rent-power') {
+    if (activeTab === "rent-power") {
       if (!canPerformActions) {
         return (
           <div className="bg-white rounded-xl shadow-sm p-8 max-w-xl mx-auto border border-gray-100">
@@ -1938,11 +2618,15 @@ function App() {
         );
       }
       return (
-        <RentPower powerBanks={powerBanks} onAddPowerBank={handleAddPowerBank} onRent={handleRentPower} />
+        <RentPower
+          powerBanks={powerBanks}
+          onAddPowerBank={handleAddPowerBank}
+          onRent={handleRentPower}
+        />
       );
     }
 
-    if (activeTab === 'total-rentals') {
+    if (activeTab === "total-rentals") {
       if (!canSeeAllStats && !isAdmin) {
         return (
           <div className="bg-white rounded-xl shadow-sm p-8 max-w-xl mx-auto border border-gray-100">
@@ -1952,11 +2636,17 @@ function App() {
       }
       return (
         <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-xl font-bold mb-6 text-gray-800">Power Bank Rental Records</h2>
+          <h2 className="text-xl font-bold mb-6 text-gray-800">
+            Power Bank Rental Records
+          </h2>
           <div className="mb-6 bg-gray-50 border border-gray-100 rounded-xl p-4 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
             <div>
-              <div className="text-sm font-black text-gray-900">Return a rented power bank</div>
-              <div className="text-xs text-gray-500 font-semibold">Scan/enter the rental QR text or the rental ID and mark returned</div>
+              <div className="text-sm font-black text-gray-900">
+                Return a rented power bank
+              </div>
+              <div className="text-xs text-gray-500 font-semibold">
+                Scan/enter the rental QR text or the rental ID and mark returned
+              </div>
             </div>
             <div className="flex gap-2 w-full md:w-auto">
               <input
@@ -1969,9 +2659,9 @@ function App() {
                 type="button"
                 onClick={() => {
                   const ok = handleReturnRental(rentalReturnValue);
-                  if (!ok) alert('Rental not found. Please check the code.');
-                  else alert('Rental marked as returned.');
-                  setRentalReturnValue('');
+                  if (!ok) alert("Rental not found. Please check the code.");
+                  else alert("Rental marked as returned.");
+                  setRentalReturnValue("");
                 }}
                 className="bg-emerald-600 text-white px-4 py-2.5 rounded-lg font-bold hover:bg-emerald-700 transition-all"
               >
@@ -1989,50 +2679,84 @@ function App() {
                 <thead>
                   <tr className="border-b border-gray-100">
                     <th className="py-4 font-semibold text-gray-600">User</th>
-                    <th className="py-4 font-semibold text-gray-600">Power Bank</th>
-                    <th className="py-4 font-semibold text-gray-600">Rental ID</th>
-                    <th className="py-4 font-semibold text-gray-600">Amount Paid</th>
-                    <th className="py-4 font-semibold text-gray-600">Rental Date</th>
+                    <th className="py-4 font-semibold text-gray-600">
+                      Power Bank
+                    </th>
+                    <th className="py-4 font-semibold text-gray-600">
+                      Rental ID
+                    </th>
+                    <th className="py-4 font-semibold text-gray-600">
+                      Amount Paid
+                    </th>
+                    <th className="py-4 font-semibold text-gray-600">
+                      Rental Date
+                    </th>
                     <th className="py-4 font-semibold text-gray-600">Status</th>
                     <th className="py-4 font-semibold text-gray-600">Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rentals.map((rental) => (
-                    <tr key={rental.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
+                    <tr
+                      key={rental.id}
+                      className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors"
+                    >
                       <td className="py-4">
                         <div className="flex items-center gap-3">
                           {rental.userPhoto ? (
-                            <img src={rental.userPhoto} className="w-10 h-10 rounded-full object-cover" alt="" />
+                            <img
+                              src={rental.userPhoto}
+                              className="w-10 h-10 rounded-full object-cover"
+                              alt=""
+                            />
                           ) : (
                             <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm font-black">
-                              {String(rental.userName || '?').trim().slice(0, 1).toUpperCase()}
+                              {String(rental.userName || "?")
+                                .trim()
+                                .slice(0, 1)
+                                .toUpperCase()}
                             </div>
                           )}
                           <div>
-                            <p className="text-gray-800 font-bold">{rental.userName}</p>
-                            <p className="text-xs text-gray-400">{rental.userPhone}</p>
+                            <p className="text-gray-800 font-bold">
+                              {rental.userName}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {rental.userPhone}
+                            </p>
                           </div>
                         </div>
                       </td>
-                      <td className="py-4 text-gray-800 font-medium">{rental.powerBankName}</td>
-                      <td className="py-4 text-xs font-mono font-bold text-gray-700">{rental.id}</td>
-                      <td className="py-4 font-bold text-gray-900">₦{rental.amountPaid.toLocaleString()}</td>
-                      <td className="py-4 text-sm text-gray-500">{rental.rentalDate.toLocaleString()}</td>
+                      <td className="py-4 text-gray-800 font-medium">
+                        {rental.powerBankName}
+                      </td>
+                      <td className="py-4 text-xs font-mono font-bold text-gray-700">
+                        {rental.id}
+                      </td>
+                      <td className="py-4 font-bold text-gray-900">
+                        ₦{rental.amountPaid.toLocaleString()}
+                      </td>
+                      <td className="py-4 text-sm text-gray-500">
+                        {rental.rentalDate.toLocaleString()}
+                      </td>
                       <td className="py-4">
-                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
-                          rental.status === 'returned' ? 'bg-gray-100 text-gray-700' : 'bg-blue-100 text-blue-700'
-                        }`}>
+                        <span
+                          className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
+                            rental.status === "returned"
+                              ? "bg-gray-100 text-gray-700"
+                              : "bg-blue-100 text-blue-700"
+                          }`}
+                        >
                           {rental.status}
                         </span>
                       </td>
                       <td className="py-4">
                         <button
                           type="button"
-                          disabled={rental.status === 'returned'}
+                          disabled={rental.status === "returned"}
                           onClick={() => {
                             const ok = handleReturnRental(rental.id);
-                            if (!ok) alert('Rental not found.');
+                            if (!ok) alert("Rental not found.");
                           }}
                           className="px-3 py-2 rounded-lg font-bold text-xs bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
                         >
@@ -2049,10 +2773,12 @@ function App() {
       );
     }
 
-    if (activeTab === 'agent-signup') {
+    if (activeTab === "agent-signup") {
       return (
         <div className="bg-white rounded-xl shadow-sm p-8 max-w-2xl mx-auto border border-gray-100">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Agent Registration</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Agent Registration
+          </h2>
           <p className="text-sm text-gray-500 mb-8">
             Enter your 10-digit registration code and create your agent account.
           </p>
@@ -2065,10 +2791,16 @@ function App() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-gray-700 mb-2">10-Digit Registration Code</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                10-Digit Registration Code
+              </label>
               <input
                 value={agentRegCode}
-                onChange={(e) => setAgentRegCode(e.target.value.replace(/[^\d]/g, '').slice(0, 10))}
+                onChange={(e) =>
+                  setAgentRegCode(
+                    e.target.value.replace(/[^\d]/g, "").slice(0, 10),
+                  )
+                }
                 placeholder="Enter 10-digit code"
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-mono"
                 inputMode="numeric"
@@ -2076,17 +2808,23 @@ function App() {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-gray-700 mb-2">Role</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                Role
+              </label>
               <input
                 value={agentRegRole}
                 readOnly
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-700 font-bold"
               />
-              <p className="mt-1 text-xs text-gray-500 font-medium">Role is assigned by the registration code</p>
+              <p className="mt-1 text-xs text-gray-500 font-medium">
+                Role is assigned by the registration code
+              </p>
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Full Name</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                Full Name
+              </label>
               <input
                 value={agentRegName}
                 onChange={(e) => setAgentRegName(e.target.value)}
@@ -2096,7 +2834,9 @@ function App() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Phone Number</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                Phone Number
+              </label>
               <input
                 value={agentRegPhone}
                 onChange={(e) => setAgentRegPhone(e.target.value)}
@@ -2106,7 +2846,22 @@ function App() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Username</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                value={agentRegEmail}
+                onChange={(e) => setAgentRegEmail(e.target.value)}
+                placeholder="Email address"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                Username
+              </label>
               <input
                 value={agentRegUsername}
                 onChange={(e) => setAgentRegUsername(e.target.value)}
@@ -2116,7 +2871,9 @@ function App() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Password (min 8 chars)</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                Password (min 8 chars)
+              </label>
               <input
                 type="password"
                 value={agentRegPassword}
@@ -2127,10 +2884,16 @@ function App() {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-gray-700 mb-2">Releasing 4-Digit PIN</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                Releasing 4-Digit PIN
+              </label>
               <input
                 value={agentRegPin}
-                onChange={(e) => setAgentRegPin(e.target.value.replace(/[^\d]/g, '').slice(0, 4))}
+                onChange={(e) =>
+                  setAgentRegPin(
+                    e.target.value.replace(/[^\d]/g, "").slice(0, 4),
+                  )
+                }
                 placeholder="4-digit PIN"
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-mono tracking-widest text-center"
                 inputMode="numeric"
@@ -2141,9 +2904,13 @@ function App() {
           <div className="mt-6 flex gap-3">
             <button
               onClick={() => {
-                setAgentRegError('');
-                setAgentRegSuccess('');
-                handleAgentSignup().catch((e) => setAgentRegError(e instanceof Error ? e.message : 'Registration failed'));
+                setAgentRegError("");
+                setAgentRegSuccess("");
+                handleAgentSignup().catch((e) =>
+                  setAgentRegError(
+                    e instanceof Error ? e.message : "Registration failed",
+                  ),
+                );
               }}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold"
             >
@@ -2154,26 +2921,32 @@ function App() {
           {agentRegSuccess && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
               <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
-                <h3 className="text-xl font-bold text-gray-900">Registration Successful</h3>
+                <h3 className="text-xl font-bold text-gray-900">
+                  Registration Successful
+                </h3>
                 <p className="text-sm text-gray-600 mt-2">
                   Agent account created successfully.
                 </p>
                 <div className="mt-4 bg-gray-50 rounded-xl p-4 border border-gray-100">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500 font-semibold">Username</span>
-                    <span className="font-mono font-bold text-gray-900">{agentRegUsername}</span>
+                    <span className="text-gray-500 font-semibold">
+                      Username
+                    </span>
+                    <span className="font-mono font-bold text-gray-900">
+                      {agentRegUsername}
+                    </span>
                   </div>
                 </div>
                 <div className="mt-6 flex justify-end gap-3">
                   <button
                     onClick={() => {
-                      setAgentRegSuccess('');
-                      setAgentRegCode('');
-                      setAgentRegName('');
-                      setAgentRegPhone('');
-                      setAgentRegUsername('');
-                      setAgentRegPassword('');
-                      setAgentRegPin('');
+                      setAgentRegSuccess("");
+                      setAgentRegCode("");
+                      setAgentRegName("");
+                      setAgentRegPhone("");
+                      setAgentRegUsername("");
+                      setAgentRegPassword("");
+                      setAgentRegPin("");
                     }}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-bold"
                   >
@@ -2187,12 +2960,16 @@ function App() {
       );
     }
 
-    if (activeTab === 'admin') {
-      if (!isAdmin && role !== 'agent-audit') {
+    if (activeTab === "admin") {
+      if (!isAdmin && role !== "agent-audit" && role !== "view-only") {
         return (
           <div className="bg-white rounded-xl shadow-sm p-8 max-w-xl mx-auto border border-gray-100">
-            <h2 className="text-xl font-bold text-gray-900">Admin access required</h2>
-            <p className="text-sm text-gray-500 mt-2">Open the admin page via #admin and login with the admin PIN.</p>
+            <h2 className="text-xl font-bold text-gray-900">
+              Admin access required
+            </h2>
+            <p className="text-sm text-gray-500 mt-2">
+              Open the admin page via #admin and login with the admin PIN.
+            </p>
             <div className="mt-6">
               <button
                 onClick={() => setShowAdminLogin(true)}
@@ -2205,18 +2982,28 @@ function App() {
         );
       }
       return (
-        <AdminDashboard 
+        <AdminDashboard
           registeredDevices={registeredDevices}
           deviceHistory={deviceHistory}
           rentals={rentals}
           agentInvites={agentInvites}
-          agents={agents.map((a) => ({ id: a.id, name: a.name, phone: a.phone, username: a.username, role: a.role, createdAt: a.createdAt }))}
+          agents={agents.map((a) => ({
+            id: a.id,
+            name: a.name,
+            phone: a.phone,
+            username: a.username,
+            role: a.role,
+            createdAt: a.createdAt,
+          }))}
           canGenerateInvites={isAdmin}
+          canManageAgents={isAdmin}
           onGenerateInvite={(inviteRole) => {
             const normalized =
-              inviteRole === 'agent-sales' || inviteRole === 'agent-audit' || inviteRole === 'view-only'
+              inviteRole === "agent-sales" ||
+              inviteRole === "agent-audit" ||
+              inviteRole === "view-only"
                 ? inviteRole
-                : 'agent-sales';
+                : "agent-sales";
             handleGenerateInvite(normalized).catch((e) => console.error(e));
           }}
           onDeleteAgent={(id) => handleDeleteAgent(id)}
@@ -2227,18 +3014,24 @@ function App() {
     return null;
   };
 
-  const isOpsConsole = activeTab === 'ops-console';
+  const isOpsConsole = activeTab === "ops-console";
 
   return (
-    <div className={isOpsConsole ? 'min-h-screen bg-slate-950' : 'min-h-screen bg-gradient-to-br from-slate-50 to-slate-100'}>
+    <div
+      className={
+        isOpsConsole
+          ? "min-h-screen bg-slate-950"
+          : "min-h-screen bg-gradient-to-br from-slate-50 to-slate-100"
+      }
+    >
       {isOpsConsole ? (
         <div className="min-h-screen w-full relative">
           <button
             onClick={() => {
               setOpsConsoleUnlocked(false);
-              setOpsConsolePin('');
-              setOpsConsoleError('');
-              setActiveTab(opsConsoleReturnTab || 'daily-summary');
+              setOpsConsolePin("");
+              setOpsConsoleError("");
+              setActiveTab(opsConsoleReturnTab || "daily-summary");
             }}
             className="fixed top-4 left-4 z-[70] bg-white/10 hover:bg-white/15 text-white border border-white/15 backdrop-blur-sm rounded-xl px-3 py-2 flex items-center gap-2 text-sm font-black"
           >
@@ -2256,13 +3049,13 @@ function App() {
                   onSubmit={(e) => {
                     e.preventDefault();
                     const pin = opsConsolePin.trim();
-                    if (pin === '1234') {
+                    if (pin === "1234") {
                       setOpsConsoleUnlocked(true);
-                      setOpsConsolePin('');
-                      setOpsConsoleError('');
+                      setOpsConsolePin("");
+                      setOpsConsoleError("");
                       return;
                     }
-                    setOpsConsoleError('Invalid PIN');
+                    setOpsConsoleError("Invalid PIN");
                   }}
                 >
                   <div className="flex items-center justify-center gap-2">
@@ -2270,7 +3063,9 @@ function App() {
                       <Sparkles className="w-6 h-6 text-blue-200" />
                     </div>
                     <div className="text-center">
-                      <div className="text-xs font-black uppercase tracking-[0.3em] text-white/70">Ops Console</div>
+                      <div className="text-xs font-black uppercase tracking-[0.3em] text-white/70">
+                        Ops Console
+                      </div>
                       <div className="mt-1 text-2xl font-black">Enter PIN</div>
                     </div>
                   </div>
@@ -2281,15 +3076,19 @@ function App() {
                       inputMode="numeric"
                       value={opsConsolePin}
                       onChange={(e) => {
-                        setOpsConsoleError('');
-                        setOpsConsolePin(e.target.value.replace(/[^\d]/g, '').slice(0, 4));
+                        setOpsConsoleError("");
+                        setOpsConsolePin(
+                          e.target.value.replace(/[^\d]/g, "").slice(0, 4),
+                        );
                       }}
                       placeholder="••••"
                       className="w-full text-center tracking-[0.6em] font-black text-2xl px-4 py-4 rounded-2xl bg-white/10 border border-white/10 focus:outline-none focus:ring-4 focus:ring-blue-500/20"
                       type="password"
                     />
                     {!!opsConsoleError && (
-                      <div className="mt-3 text-center text-sm font-bold text-red-200">{opsConsoleError}</div>
+                      <div className="mt-3 text-center text-sm font-bold text-red-200">
+                        {opsConsoleError}
+                      </div>
                     )}
                   </div>
 
@@ -2303,9 +3102,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="min-h-screen w-full p-4">
-              {renderTabContent()}
-            </div>
+            <div className="min-h-screen w-full p-4">{renderTabContent()}</div>
           )}
         </div>
       ) : (
@@ -2318,8 +3115,12 @@ function App() {
                     <BarChart3 className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Analytics Dashboard</h1>
-                    <p className="text-sm text-gray-500">Real-time business insights</p>
+                    <h1 className="text-2xl font-bold text-gray-900">
+                      Analytics Dashboard
+                    </h1>
+                    <p className="text-sm text-gray-500">
+                      Real-time business insights
+                    </p>
                   </div>
                 </div>
                 <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
@@ -2337,21 +3138,27 @@ function App() {
                     <button
                       onClick={() => handleTabClick(tab.id)}
                       className={`w-full text-left px-3 py-2 rounded-md flex items-center justify-between ${
-                        activeTab === tab.id ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
+                        activeTab === tab.id
+                          ? "bg-blue-600 text-white"
+                          : "text-gray-700 hover:bg-gray-100"
                       }`}
                     >
                       <span>{tab.label}</span>
-                      {tab.id === 'admin' && !isAdmin && role !== 'agent-audit' && <Lock className="w-3 h-3 opacity-50" />}
-                      {tab.id === 'admin' && isAdmin && <ShieldCheck className="w-3 h-3 text-emerald-400" />}
+                      {tab.id === "admin" &&
+                        !isAdmin &&
+                        role !== "agent-audit" && (
+                          <Lock className="w-3 h-3 opacity-50" />
+                        )}
+                      {tab.id === "admin" && isAdmin && (
+                        <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                      )}
                     </button>
                   </li>
                 ))}
               </ul>
             </aside>
 
-            <section className="flex-1">
-              {renderTabContent()}
-            </section>
+            <section className="flex-1">{renderTabContent()}</section>
           </div>
 
           {showAdminLogin && (
@@ -2361,8 +3168,12 @@ function App() {
                   <div className="bg-blue-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Lock className="w-8 h-8 text-blue-600" />
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-900">Admin Access</h2>
-                  <p className="text-gray-500 mt-2">Enter your password to view sensitive analytics</p>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    Admin Access
+                  </h2>
+                  <p className="text-gray-500 mt-2">
+                    Enter your password to view sensitive analytics
+                  </p>
                 </div>
 
                 <form onSubmit={handleAdminLogin} className="space-y-6">
@@ -2376,7 +3187,9 @@ function App() {
                       value={adminPassword}
                       onChange={(e) => setAdminPassword(e.target.value)}
                       className={`w-full px-4 py-3 rounded-xl border ${
-                        adminError ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-blue-500'
+                        adminError
+                          ? "border-red-300 bg-red-50"
+                          : "border-gray-200 focus:border-blue-500"
                       } focus:ring-4 focus:ring-blue-500/10 outline-none transition-all`}
                       placeholder="Enter 5-digit PIN"
                     />
@@ -2435,7 +3248,8 @@ function App() {
             const left = (seed * 13) % 100;
             const size = 16 + ((seed * 7) % 14);
             const delay = ((seed * 11) % 60) / 1000;
-            const color = i % 3 === 0 ? '#a7f3d0' : i % 3 === 1 ? '#93c5fd' : '#f0abfc';
+            const color =
+              i % 3 === 0 ? "#a7f3d0" : i % 3 === 1 ? "#93c5fd" : "#f0abfc";
             return (
               <span
                 key={`petal_${i}`}
@@ -2444,7 +3258,7 @@ function App() {
                   left: `${left}%`,
                   animationDelay: `${delay}s`,
                   fontSize: `${size}px`,
-                  filter: 'drop-shadow(0 6px 10px rgba(0,0,0,0.25))',
+                  filter: "drop-shadow(0 6px 10px rgba(0,0,0,0.25))",
                   color,
                 }}
               >
@@ -2470,16 +3284,19 @@ function App() {
                   width: `${w}px`,
                   height: `${h}px`,
                   background: `hsl(${hue} 92% 70%)`,
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.25)',
-                  transform: 'translateZ(0)',
-                  mixBlendMode: 'screen',
+                  boxShadow: "0 10px 25px rgba(0,0,0,0.25)",
+                  transform: "translateZ(0)",
+                  mixBlendMode: "screen",
                 }}
               />
             );
           })}
 
           <div className="absolute inset-0 flex items-start justify-center pt-10 px-4">
-            <div className="relative bg-emerald-600 text-white rounded-2xl shadow-2xl border border-emerald-300/30 px-5 py-4 flex items-center gap-3 animate-in fade-in zoom-in duration-150" style={{ animation: 'glowPulse 2s ease-in-out forwards' }}>
+            <div
+              className="relative bg-emerald-600 text-white rounded-2xl shadow-2xl border border-emerald-300/30 px-5 py-4 flex items-center gap-3 animate-in fade-in zoom-in duration-150"
+              style={{ animation: "glowPulse 2s ease-in-out forwards" }}
+            >
               <CheckCircle2 className="w-6 h-6 text-white" />
               <div className="font-black text-center">
                 Thank you {thankYouToast.name} for trusting us

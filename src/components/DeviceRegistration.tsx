@@ -72,6 +72,7 @@ interface DeviceRegistrationProps {
   occupiedSlots: number[];
   defaultRegisteredBy?: string;
   lockRegisteredBy?: boolean;
+  showAgentOnReceipt?: boolean;
 }
 
 export default function DeviceRegistration({
@@ -79,6 +80,7 @@ export default function DeviceRegistration({
   occupiedSlots,
   defaultRegisteredBy,
   lockRegisteredBy,
+  showAgentOnReceipt,
 }: DeviceRegistrationProps) {
   const [step, setStep] = useState<
     "form" | "method-selection" | "processing-fingerprint" | "success-qr" | "fingerprint-error"
@@ -374,14 +376,18 @@ export default function DeviceRegistration({
                   {currentDevice.retrievalPin}
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                  Agent
-                </p>
-                <p className="text-sm font-semibold text-gray-700">
-                  {currentDevice.registeredBy}
-                </p>
-              </div>
+              {showAgentOnReceipt ? (
+                <div className="text-right">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                    Agent
+                  </p>
+                  <p className="text-sm font-semibold text-gray-700">
+                    {currentDevice.registeredBy}
+                  </p>
+                </div>
+              ) : (
+                <div />
+              )}
             </div>
 
             <div className="pt-4 text-center border-t border-dashed border-gray-200">

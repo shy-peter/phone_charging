@@ -22,6 +22,7 @@ interface AdminDashboardProps {
   canGenerateInvites?: boolean;
   onGenerateInvite: (role: string) => void;
   onDeleteAgent: (id: string) => void;
+  canManageAgents?: boolean;
 }
 
 export default function AdminDashboard({
@@ -33,9 +34,11 @@ export default function AdminDashboard({
   canGenerateInvites,
   onGenerateInvite,
   onDeleteAgent,
+  canManageAgents,
 }: AdminDashboardProps) {
-  const [section, setSection] = useState<'overview' | 'agents'>('overview');
+  const [section, setSection] = useState<'overview' | 'agents' | 'counter'>('overview');
   const [inviteRole, setInviteRole] = useState<'agent-sales' | 'agent-audit' | 'view-only'>('agent-sales');
+  const [counterFilter, setCounterFilter] = useState<'all' | 'registered' | 'retrieved' | 'rentals'>('all');
   // Calculate total revenue from charging and rentals
   const chargingRevenue = deviceHistory.reduce((sum, d) => sum + d.price, 0);
   const rentalRevenue = rentals.reduce((sum, r) => sum + r.amountPaid, 0);
@@ -114,6 +117,50 @@ export default function AdminDashboard({
     }
   ];
 
+  const registeredPhones = registeredDevices.filter((d) => String(d.deviceType || '').toLowerCase() === 'phone');
+  const retrievedPhones = deviceHistory.filter((d) => String(d.deviceType || '').toLowerCase() === 'phone');
+
+  const counterRows = (() => {
+    const regRows = registeredPhones.map((d) => ({
+      kind: 'registered' as const,
+      id: d.id,
+      name: d.username,
+      detail: `${d.deviceName || '—'} • Slot #${d.slotNumber}`,
+      amount: d.price,
+      at: d.registeredAt,
+      status: d.paymentStatus || d.status,
+    }));
+    const retRows = retrievedPhones.map((d) => ({
+      kind: 'retrieved' as const,
+      id: d.id,
+      name: d.username,
+      detail: `${d.deviceName || '—'} • Slot #${d.slotNumber}`,
+      amount: d.price,
+      at: d.retrievedAt || d.registeredAt,
+      status: d.paymentStatus || d.status,
+    }));
+    const rentRows = rentals.map((r) => ({
+      kind: 'rentals' as const,
+      id: r.id,
+      name: r.userName,
+      detail: `${r.powerBankName} • ${r.userPhone}`,
+      amount: r.amountPaid,
+      at: r.rentalDate,
+      status: r.status,
+    }));
+
+    const all = [...regRows, ...retRows, ...rentRows].sort((a, b) => {
+      const atA = a.at ? new Date(a.at).getTime() : 0;
+      const atB = b.at ? new Date(b.at).getTime() : 0;
+      return atB - atA;
+    });
+
+    if (counterFilter === 'registered') return regRows;
+    if (counterFilter === 'retrieved') return retRows;
+    if (counterFilter === 'rentals') return rentRows;
+    return all;
+  })();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -133,6 +180,14 @@ export default function AdminDashboard({
           Overview
         </button>
         <button
+          onClick={() => setSection('counter')}
+          className={`px-4 py-2 rounded-lg font-bold text-sm border ${
+            section === 'counter' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+          }`}
+        >
+          Counter
+        </button>
+        <button
           onClick={() => setSection('agents')}
           className={`px-4 py-2 rounded-lg font-bold text-sm border ${
             section === 'agents' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
@@ -141,6 +196,98 @@ export default function AdminDashboard({
           Agents
         </button>
       </div>
+
+      {section === 'counter' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h3 className="font-bold text-gray-800">Counter</h3>
+              <p className="text-xs text-gray-500 font-semibold">Registered phones, retrieved phones, and power bank rentals</p>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setCounterFilter('all')}
+                className={`px-3 py-2 rounded-lg font-bold text-xs border ${
+                  counterFilter === 'all' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setCounterFilter('registered')}
+                className={`px-3 py-2 rounded-lg font-bold text-xs border ${
+                  counterFilter === 'registered' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                Registered Phones
+              </button>
+              <button
+                onClick={() => setCounterFilter('retrieved')}
+                className={`px-3 py-2 rounded-lg font-bold text-xs border ${
+                  counterFilter === 'retrieved' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                Retrieved Phones
+              </button>
+              <button
+                onClick={() => setCounterFilter('rentals')}
+                className={`px-3 py-2 rounded-lg font-bold text-xs border ${
+                  counterFilter === 'rentals' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                Rentals
+              </button>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50 text-gray-500 font-semibold uppercase text-[10px] tracking-wider">
+                <tr>
+                  <th className="px-4 py-3">Type</th>
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Details</th>
+                  <th className="px-4 py-3">Amount</th>
+                  <th className="px-4 py-3">Time</th>
+                  <th className="px-4 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {counterRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-10 text-center text-gray-400 font-semibold">No records</td>
+                  </tr>
+                ) : (
+                  counterRows.slice(0, 200).map((row) => (
+                    <tr key={`${row.kind}_${row.id}`} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
+                          row.kind === 'registered'
+                            ? 'bg-blue-100 text-blue-700'
+                            : row.kind === 'retrieved'
+                              ? 'bg-indigo-100 text-indigo-700'
+                              : 'bg-purple-100 text-purple-700'
+                        }`}>
+                          {row.kind}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-gray-900">{row.name || '—'}</td>
+                      <td className="px-4 py-3 text-gray-600">{row.detail || '—'}</td>
+                      <td className="px-4 py-3 font-black text-gray-900">₦{Number(row.amount || 0).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-[10px] text-gray-500 font-mono">{row.at ? new Date(row.at).toLocaleString() : '—'}</td>
+                      <td className="px-4 py-3">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 uppercase">
+                          {String(row.status || '—')}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {section === 'agents' && (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -255,17 +402,23 @@ export default function AdminDashboard({
                             {new Date(agent.createdAt).toLocaleString()}
                           </td>
                           <td className="px-4 py-3">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const ok = confirm(`Delete agent "${agent.username}"?`);
-                                if (!ok) return;
-                                onDeleteAgent(agent.id);
-                              }}
-                              className="px-3 py-2 rounded-lg font-bold text-xs bg-red-600 text-white hover:bg-red-700"
-                            >
-                              Delete
-                            </button>
+                            {canManageAgents ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const ok = confirm(`Delete agent "${agent.username}"?`);
+                                  if (!ok) return;
+                                  onDeleteAgent(agent.id);
+                                }}
+                                className="px-3 py-2 rounded-lg font-bold text-xs bg-red-600 text-white hover:bg-red-700"
+                              >
+                                Delete
+                              </button>
+                            ) : (
+                              <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-gray-100 text-gray-500">
+                                Read-only
+                              </span>
+                            )}
                           </td>
                         </tr>
                       ))
