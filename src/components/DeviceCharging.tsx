@@ -107,9 +107,9 @@ export default function DeviceCharging({ devices, isAdmin, setIsAdmin }: DeviceC
           return (
             <div
               key={device.id}
-              className={`border rounded-xl transition-all relative flex flex-col items-center justify-center ${
+              className={`border rounded-xl w-fit transition-all relative flex flex-col items-center justify-center ${
                 !isAdmin
-                  ? "bg-white border-blue-500 p-2 shadow-sm h-12 w-12 rounded-full"
+                  ? "bg-white  border-blue-500 p-2 shadow-sm h-12 w-12 rounded-full"
                   : isCompleted
                     ? "bg-green-50 border-green-600 shadow-lg p-4 text-blue-500"
                     : "border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4"

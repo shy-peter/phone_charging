@@ -62,6 +62,7 @@ function App() {
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [adminError, setAdminError] = useState('');
+  const [adminRouteVisible, setAdminRouteVisible] = useState(false);
   const supabaseEnabled = !!supabase;
   const [localApiEnabled, setLocalApiEnabled] = useState(false);
   const [agentInvites, setAgentInvites] = useState<AgentInvite[]>(() => {
@@ -909,7 +910,7 @@ function App() {
     setAgentRegPin('');
   };
 
-  const tabs = [
+  const baseTabs = [
     { id: 'daily-summary', label: 'Daily Summary' },
     { id: 'ops-console', label: 'Ops Console' },
     { id: 'dashboard', label: 'Dashboard' },
@@ -921,13 +922,33 @@ function App() {
     { id: 'total-rentals', label: 'Total Rentals' },
     { id: 'agent-login', label: 'Agent Login' },
     { id: 'agent-signup', label: 'Agent Sign Up' },
-    { id: 'admin', label: 'Admin Oversight' },
   ];
 
   const role = agentSession?.role;
   const canSeeAllStats = !!isAdmin || role === 'agent-audit';
   const canPerformActions = !!isAdmin || role === 'agent-sales';
   const canSeeDailySummary = !!isAdmin || role === 'agent-sales' || role === 'view-only';
+
+  useEffect(() => {
+    const applyHashRoute = () => {
+      const raw = (window.location.hash || '').replace(/^#/, '').trim().toLowerCase();
+      const isAdminRoute = raw === 'admin' || raw === 'admin-insight' || raw === 'admin-oversight';
+      setAdminRouteVisible(isAdminRoute);
+      if (isAdminRoute) {
+        setActiveTab('admin');
+        if (!isAdmin && role !== 'agent-audit') setShowAdminLogin(true);
+      }
+    };
+
+    applyHashRoute();
+    window.addEventListener('hashchange', applyHashRoute);
+    return () => window.removeEventListener('hashchange', applyHashRoute);
+  }, [isAdmin, role]);
+
+  const tabs =
+    adminRouteVisible || activeTab === 'admin'
+      ? [...baseTabs, { id: 'admin', label: 'Admin Oversight' }]
+      : baseTabs;
 
   const visibleTabIds = (() => {
     if (isAdmin) {
@@ -1033,7 +1054,57 @@ function App() {
               </button>
             </div>
           ) : (
-            <div className="space-y-4">
+            <form
+              className="space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                setAgentLoginError('');
+                const u = agentLoginUsername.trim();
+                if (!u) {
+                  setAgentLoginError('Enter your username');
+                  return;
+                }
+                if (agentLoginPassword.length < 8) {
+                  setAgentLoginError('Password must be at least 8 characters');
+                  return;
+                }
+                const agent = agents.find((a) => a.username.toLowerCase() === u.toLowerCase());
+                if (!agent) {
+                  setAgentLoginError('Login details incorrect. Try again.');
+                  return;
+                }
+                Promise.resolve()
+                  .then(async () => {
+                    if (agent.passwordSha256Hex && agent.passwordSalt) {
+                      const got = (await sha256Hex(`${agent.passwordSalt}:${agentLoginPassword}`)).toLowerCase();
+                      const expected = agent.passwordSha256Hex.toLowerCase();
+                      return got === expected;
+                    }
+                    if (agent.passwordHash && agent.passwordSalt) {
+                      const got = await deriveHash(agentLoginPassword, agent.passwordSalt);
+                      return got === agent.passwordHash;
+                    }
+                    return false;
+                  })
+                  .then((ok) => {
+                    if (!ok) {
+                      setAgentLoginError('Login details incorrect. Try again.');
+                      return;
+                    }
+                    setAgentSession({ username: agent.username, role: agent.role });
+                    setAgentLoginPassword('');
+                    setAgentLoginError('');
+                    setActiveTab(
+                      agent.role === 'agent-sales' || agent.role === 'view-only'
+                        ? 'daily-summary'
+                        : agent.role === 'agent-audit'
+                          ? 'dashboard'
+                          : 'agent-login',
+                    );
+                  })
+                  .catch(() => setAgentLoginError('Login failed. Try again.'));
+              }}
+            >
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Username</label>
                 <input
@@ -1054,58 +1125,12 @@ function App() {
                 />
               </div>
               <button
-                onClick={() => {
-                  setAgentLoginError('');
-                  const u = agentLoginUsername.trim();
-                  if (!u) {
-                    setAgentLoginError('Enter your username');
-                    return;
-                  }
-                  if (agentLoginPassword.length < 8) {
-                    setAgentLoginError('Password must be at least 8 characters');
-                    return;
-                  }
-                  const agent = agents.find((a) => a.username.toLowerCase() === u.toLowerCase());
-                  if (!agent) {
-                    setAgentLoginError('Login details incorrect. Try again.');
-                    return;
-                  }
-                  Promise.resolve()
-                    .then(async () => {
-                      if (agent.passwordSha256Hex && agent.passwordSalt) {
-                        const got = (await sha256Hex(`${agent.passwordSalt}:${agentLoginPassword}`)).toLowerCase();
-                        const expected = agent.passwordSha256Hex.toLowerCase();
-                        return got === expected;
-                      }
-                      if (agent.passwordHash && agent.passwordSalt) {
-                        const got = await deriveHash(agentLoginPassword, agent.passwordSalt);
-                        return got === agent.passwordHash;
-                      }
-                      return false;
-                    })
-                    .then((ok) => {
-                      if (!ok) {
-                        setAgentLoginError('Login details incorrect. Try again.');
-                        return;
-                      }
-                      setAgentSession({ username: agent.username, role: agent.role });
-                      setAgentLoginPassword('');
-                      setAgentLoginError('');
-                      setActiveTab(
-                        agent.role === 'agent-sales' || agent.role === 'view-only'
-                          ? 'daily-summary'
-                          : agent.role === 'agent-audit'
-                            ? 'dashboard'
-                            : 'agent-login',
-                      );
-                    })
-                    .catch(() => setAgentLoginError('Login failed. Try again.'));
-                }}
+                type="submit"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold"
               >
                 Login
               </button>
-            </div>
+            </form>
           )}
         </div>
       );
@@ -1606,7 +1631,7 @@ function App() {
                       .map((d) => (
                         <div
                           key={d.id}
-                          className="rounded-xl border border-white/10 bg-slate-950/30 px-2 py-2 flex flex-col items-center justify-center"
+                          className="rounded-xl w-fit border border-white/10 bg-slate-950/30 px-2 py-2 flex flex-col items-center justify-center"
                         >
                           <div className="text-[10px] font-black text-white/70">Slot</div>
                           <div className="text-xs font-black text-white/60 blur-[3px] select-none">#{d.slotNumber}</div>
@@ -2163,6 +2188,22 @@ function App() {
     }
 
     if (activeTab === 'admin') {
+      if (!isAdmin && role !== 'agent-audit') {
+        return (
+          <div className="bg-white rounded-xl shadow-sm p-8 max-w-xl mx-auto border border-gray-100">
+            <h2 className="text-xl font-bold text-gray-900">Admin access required</h2>
+            <p className="text-sm text-gray-500 mt-2">Open the admin page via #admin and login with the admin PIN.</p>
+            <div className="mt-6">
+              <button
+                onClick={() => setShowAdminLogin(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold"
+              >
+                Admin Login
+              </button>
+            </div>
+          </div>
+        );
+      }
       return (
         <AdminDashboard 
           registeredDevices={registeredDevices}
