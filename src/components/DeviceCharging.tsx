@@ -1,10 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  Smartphone,
-  User,
-  Lock,
-  ShieldCheck,
-} from "lucide-react";
+import { Smartphone, User, Lock, ShieldCheck } from "lucide-react";
 import type { RegisteredDevice } from "./DeviceRegistration";
 
 interface DeviceChargingProps {
@@ -13,12 +8,18 @@ interface DeviceChargingProps {
   setIsAdmin: (isAdmin: boolean) => void;
 }
 
-export default function DeviceCharging({ devices, isAdmin, setIsAdmin }: DeviceChargingProps) {
+export default function DeviceCharging({
+  devices,
+  isAdmin,
+  setIsAdmin,
+}: DeviceChargingProps) {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [selectedDevice, setSelectedDevice] = useState<RegisteredDevice | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState<RegisteredDevice | null>(
+    null,
+  );
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -98,7 +99,7 @@ export default function DeviceCharging({ devices, isAdmin, setIsAdmin }: DeviceC
       </div>
 
       <div
-        className={`grid grid-cols-1 relative md:grid-cols-2   gap-4 ${!isAdmin ? "lg:grid-cols-12 " : "grid-cols-4"}`}
+        className={`grid grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2 place-items-center ${!isAdmin ? "lg:grid-cols-12 " : "grid-cols-4"}`}
       >
         {devices.map((device) => {
           const remaining = getRemainingTime(device);
@@ -107,9 +108,9 @@ export default function DeviceCharging({ devices, isAdmin, setIsAdmin }: DeviceC
           return (
             <div
               key={device.id}
-              className={`border rounded-xl w-fit transition-all relative flex flex-col items-center justify-center ${
+              className={`border border-gray-200 rounded-md bg-gradient-to-br from-gray-50 to-white flex items-center justify-center w-fit transition-all relative ${
                 !isAdmin
-                  ? "bg-white  border-blue-500 p-2 shadow-sm h-12 w-12 rounded-full"
+                  ? "bg-white  border-blue-500 p-2 shadow-sm w-fit rounded-full"
                   : isCompleted
                     ? "bg-green-50 border-green-600 shadow-lg p-4 text-blue-500"
                     : "border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4"
@@ -130,8 +131,12 @@ export default function DeviceCharging({ devices, isAdmin, setIsAdmin }: DeviceC
                   onClick={() => setSelectedDevice(device)}
                   className="w-full h-full flex flex-col items-center justify-center rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Slot</div>
-                  <div className={`text-3xl font-black ${isCompleted ? "text-green-700" : "text-blue-600"}`}>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                    Slot
+                  </div>
+                  <div
+                    className={`text-3xl font-black ${isCompleted ? "text-green-700" : "text-blue-600"}`}
+                  >
                     {device.slotNumber}
                   </div>
                 </button>
@@ -146,9 +151,15 @@ export default function DeviceCharging({ devices, isAdmin, setIsAdmin }: DeviceC
           <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-xl w-full animate-in fade-in zoom-in duration-200">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
-                <div className="text-xs font-black uppercase tracking-widest text-gray-400">Device Details</div>
-                <div className="text-xl font-black text-gray-900">{selectedDevice.deviceName}</div>
-                <div className="text-sm font-bold text-blue-600">{selectedDevice.deviceType}</div>
+                <div className="text-xs font-black uppercase tracking-widest text-gray-400">
+                  Device Details
+                </div>
+                <div className="text-xl font-black text-gray-900">
+                  {selectedDevice.deviceName}
+                </div>
+                <div className="text-sm font-bold text-blue-600">
+                  {selectedDevice.deviceType}
+                </div>
               </div>
               <button
                 onClick={() => setSelectedDevice(null)}
@@ -174,37 +185,53 @@ export default function DeviceCharging({ devices, isAdmin, setIsAdmin }: DeviceC
               <div className="flex-1 min-w-0 space-y-2">
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
-                    <div className="text-[10px] font-black uppercase tracking-wider text-gray-400">Slot</div>
-                    <div className="text-lg font-black text-gray-900">{selectedDevice.slotNumber}</div>
+                    <div className="text-[10px] font-black uppercase tracking-wider text-gray-400">
+                      Slot
+                    </div>
+                    <div className="text-lg font-black text-gray-900">
+                      {selectedDevice.slotNumber}
+                    </div>
                   </div>
                   <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
-                    <div className="text-[10px] font-black uppercase tracking-wider text-gray-400">Price</div>
-                    <div className="text-lg font-black text-gray-900">₦{selectedDevice.price.toLocaleString()}</div>
+                    <div className="text-[10px] font-black uppercase tracking-wider text-gray-400">
+                      Price
+                    </div>
+                    <div className="text-lg font-black text-gray-900">
+                      ₦{selectedDevice.price.toLocaleString()}
+                    </div>
                   </div>
                 </div>
 
                 <div className="bg-white border border-gray-200 rounded-xl p-3">
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-gray-400" />
-                    <div className="font-bold text-gray-900 truncate">{selectedDevice.username}</div>
+                    <div className="font-bold text-gray-900 truncate">
+                      {selectedDevice.username}
+                    </div>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <span className="text-[10px] font-black bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-100">
-                      {selectedDevice.registrationMethod === "qr" ? "QR" : "FINGERPRINT"}
+                      {selectedDevice.registrationMethod === "qr"
+                        ? "QR"
+                        : "FINGERPRINT"}
                     </span>
                     <span className="text-[10px] font-black bg-gray-50 text-gray-700 px-2 py-1 rounded-full border border-gray-100">
                       Reg ID: {selectedDevice.registrationId}
                     </span>
-                    <span className={`text-[10px] font-black px-2 py-1 rounded-full border ${
-                      selectedDevice.paymentStatus === "PAID"
-                        ? "bg-green-50 text-green-700 border-green-100"
-                        : "bg-red-50 text-red-700 border-red-100"
-                    }`}>
+                    <span
+                      className={`text-[10px] font-black px-2 py-1 rounded-full border ${
+                        selectedDevice.paymentStatus === "PAID"
+                          ? "bg-green-50 text-green-700 border-green-100"
+                          : "bg-red-50 text-red-700 border-red-100"
+                      }`}
+                    >
                       {selectedDevice.paymentStatus}
                     </span>
                   </div>
                   <div className="mt-2 text-xs font-mono font-black text-gray-600 break-all">
-                    {selectedDevice.qrData || selectedDevice.fingerprintId || selectedDevice.id}
+                    {selectedDevice.qrData ||
+                      selectedDevice.fingerprintId ||
+                      selectedDevice.id}
                   </div>
                 </div>
               </div>
