@@ -2579,90 +2579,6 @@ function App() {
             }}
             occupiedSlots={chargingDevices.map((d) => d.slotNumber)}
           />
-
-          <div className="mt-6">
-            <RentPower
-              powerBanks={powerBanks}
-              onAddPowerBank={handleAddPowerBank}
-              onRent={handleRentPower}
-              canAddPowerBank={isAdmin}
-              canRent={agentSession?.role === "agent-sales" || isAdmin}
-            />
-          </div>
-
-          <div className="mt-6 bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-xl font-bold mb-4 text-gray-800">
-              Power Bank Rental Records
-            </h2>
-
-            <div className="mb-6 bg-gray-50 border border-gray-100 rounded-xl p-4 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
-              <div>
-                <div className="text-sm font-black text-gray-900">
-                  Return a rented power bank
-                </div>
-                <div className="text-xs text-gray-500 font-semibold">
-                  Scan/enter the rental QR text or the rental ID and mark returned
-                </div>
-              </div>
-              <div className="flex gap-2 w-full md:w-auto">
-                <input
-                  value={rentalReturnValue}
-                  onChange={(e) => setRentalReturnValue(e.target.value)}
-                  placeholder="Rental ID or QR data"
-                  className="px-3 py-2 border border-gray-200 rounded-lg w-full md:w-64"
-                />
-                <button
-                  onClick={() => {
-                    const needle = rentalReturnValue.trim();
-                    if (!needle) return;
-                    const found = rentals.find(
-                      (r) => r.id === needle || String(r.id) === needle || String(r.qrData) === needle,
-                    );
-                    if (!found) {
-                      alert("Rental not found");
-                      return;
-                    }
-                    setRentals((prev) => prev.map((r) => r.id === found.id ? { ...r, status: 'returned', returnedAt: new Date(), returnedBy: agentSession?.username || 'unknown' } : r));
-                    setRentalReturnValue("");
-                  }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold"
-                >
-                  Mark Returned
-                </button>
-              </div>
-            </div>
-
-            {rentals.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">No rentals yet.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="border-b border-gray-100">
-                      <th className="py-4 font-semibold text-gray-600">Rental ID</th>
-                      <th className="py-4 font-semibold text-gray-600">Power Bank</th>
-                      <th className="py-4 font-semibold text-gray-600">Renter</th>
-                      <th className="py-4 font-semibold text-gray-600">Phone</th>
-                      <th className="py-4 font-semibold text-gray-600">Status</th>
-                      <th className="py-4 font-semibold text-gray-600">Rented At</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rentals.map((r) => (
-                      <tr key={r.id} className="border-b border-gray-50 last:border-0">
-                        <td className="py-4 text-gray-800">{r.id}</td>
-                        <td className="py-4 text-gray-800">{r.powerBankName}</td>
-                        <td className="py-4 text-gray-800">{r.userName}</td>
-                        <td className="py-4 text-gray-800">{r.userPhone}</td>
-                        <td className="py-4 text-gray-800">{r.status}</td>
-                        <td className="py-4 text-sm text-gray-500">{new Date(r.rentalDate).toLocaleString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
         </div>
       );
     }
@@ -2930,6 +2846,8 @@ function App() {
           powerBanks={powerBanks}
           onAddPowerBank={handleAddPowerBank}
           onRent={handleRentPower}
+          canAddPowerBank={isAdmin}
+          canRent={agentSession?.role === "agent-sales" || isAdmin}
         />
       );
     }
