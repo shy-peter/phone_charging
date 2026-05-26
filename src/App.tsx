@@ -1265,9 +1265,8 @@ function App() {
     }
     if (tabId === "ops-console") {
       if (activeTab !== "ops-console") setOpsConsoleReturnTab(activeTab);
-      setOpsConsoleUnlocked(false);
-      setOpsConsolePin("");
-      setOpsConsoleError("");
+      // Open ops console directly without requiring a PIN
+      setOpsConsoleUnlocked(true);
       setActiveTab(tabId);
       return;
     }
