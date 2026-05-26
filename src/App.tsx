@@ -179,10 +179,18 @@ function App() {
     }
   });
 
+  const [rememberMe, setRememberMe] = useState(() => {
+    try {
+      return localStorage.getItem("agentRememberMe") === "true";
+    } catch {
+      return false;
+    }
+  });
   const [agentSession, setAgentSession] = useState<{
     username: string;
     role: AgentAccount["role"];
   } | null>(() => {
+    if (!rememberMe) return null;
     const saved = localStorage.getItem("agentSession");
     if (!saved) return null;
     try {
@@ -403,12 +411,27 @@ function App() {
 
   useEffect(() => {
     try {
-      if (!agentSession) localStorage.removeItem("agentSession");
-      else localStorage.setItem("agentSession", JSON.stringify(agentSession));
+      localStorage.setItem("agentRememberMe", String(rememberMe));
+    } catch (e) {
+      console.error("Failed to save remember-me preference:", e);
+    }
+  }, [rememberMe]);
+
+  useEffect(() => {
+    try {
+      if (!rememberMe) {
+        localStorage.removeItem("agentSession");
+        return;
+      }
+      if (!agentSession) {
+        localStorage.removeItem("agentSession");
+        return;
+      }
+      localStorage.setItem("agentSession", JSON.stringify(agentSession));
     } catch (e) {
       console.error("Failed to save agent session:", e);
     }
-  }, [agentSession]);
+  }, [agentSession, rememberMe]);
 
   useEffect(() => {
     if (!agentSession) return;
@@ -1397,6 +1420,15 @@ function App() {
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 />
               </div>
+              <label className="flex items-center gap-3 text-sm font-semibold text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                Remember me
+              </label>
               <button
                 type="submit"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold"
