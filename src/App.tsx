@@ -179,18 +179,12 @@ function App() {
     }
   });
 
-  const [rememberMe, setRememberMe] = useState(() => {
-    try {
-      return localStorage.getItem("agentRememberMe") === "true";
-    } catch {
-      return false;
-    }
-  });
   const [agentSession, setAgentSession] = useState<{
     username: string;
     role: AgentAccount["role"];
   } | null>(() => {
-    if (!rememberMe) return null;
+    const remember = localStorage.getItem("rememberAgent") === "true";
+    if (!remember) return null;
     const saved = localStorage.getItem("agentSession");
     if (!saved) return null;
     try {
@@ -203,6 +197,9 @@ function App() {
     } catch {
       return null;
     }
+  });
+  const [rememberAgent, setRememberAgent] = useState(() => {
+    return localStorage.getItem("rememberAgent") === "true";
   });
   const [agentLoginUsername, setAgentLoginUsername] = useState("");
   const [agentLoginPassword, setAgentLoginPassword] = useState("");
@@ -411,27 +408,24 @@ function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem("agentRememberMe", String(rememberMe));
-    } catch (e) {
-      console.error("Failed to save remember-me preference:", e);
-    }
-  }, [rememberMe]);
+      if (rememberAgent) {
+        localStorage.setItem("rememberAgent", "true");
+      } else {
+        localStorage.removeItem("rememberAgent");
+      }
 
-  useEffect(() => {
-    try {
-      if (!rememberMe) {
-        localStorage.removeItem("agentSession");
+      if (!agentSession || !rememberAgent) {
+        if (!rememberAgent) {
+          localStorage.removeItem("agentSession");
+        }
         return;
       }
-      if (!agentSession) {
-        localStorage.removeItem("agentSession");
-        return;
-      }
+
       localStorage.setItem("agentSession", JSON.stringify(agentSession));
     } catch (e) {
       console.error("Failed to save agent session:", e);
     }
-  }, [agentSession, rememberMe]);
+  }, [agentSession, rememberAgent]);
 
   useEffect(() => {
     if (!agentSession) return;
@@ -1392,7 +1386,7 @@ function App() {
                     setAgentMenuOpen(false);
                     setAgentLoginPassword("");
                     setAgentLoginError("");
-                    setActiveTab("agent-login");
+                    setActiveTab("ops-console");
                   })
                   .catch(() => setAgentLoginError("Login failed. Try again."));
               }}
@@ -1423,8 +1417,8 @@ function App() {
               <label className="flex items-center gap-3 text-sm font-semibold text-gray-700">
                 <input
                   type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
+                  checked={rememberAgent}
+                  onChange={(e) => setRememberAgent(e.target.checked)}
                   className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 Remember me
@@ -3385,6 +3379,7 @@ function App() {
                               type="button"
                               onClick={() => {
                                 setAgentMenuOpen(false);
+                                setRememberAgent(false);
                                 setAgentSession(null);
                                 setAgentLoginPassword("");
                                 setAgentLoginError("");
