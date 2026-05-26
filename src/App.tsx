@@ -143,7 +143,10 @@ const DEFAULT_POWER_BANKS: PowerBank[] = [
 ];
 
 function App() {
-  const [activeTab, setActiveTab] = useState("ops-console");
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window === "undefined") return "agent-login";
+    return localStorage.getItem("agentSession") ? "summary" : "agent-login";
+  });
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
