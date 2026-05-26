@@ -252,8 +252,11 @@ export default function RentPower({
         {powerBanks.map((pb) => (
           <div 
             key={pb.id}
-            className="border border-gray-100 rounded-2xl p-6 hover:shadow-xl transition-all group bg-white"
+            className="relative border border-gray-100 rounded-2xl p-6 hover:shadow-xl transition-all group bg-white overflow-hidden"
           >
+            <div className="absolute -right-3 top-4 rotate-12 bg-amber-500 text-white px-4 py-1 shadow-lg">
+              <span className="text-sm font-black">₦{pb.pricePerDay.toLocaleString()}/day</span>
+            </div>
             <h3 className="text-2xl font-black text-gray-900 mb-2">{pb.capacity}</h3>
             <p className="text-sm text-gray-500 mb-4">
               Qty available: <span className="font-black text-gray-900">{pb.quantityAvailable}</span>
