@@ -3287,7 +3287,7 @@ function App() {
         </div>
       ) : (
         <>
-          <header className="bg-white shadow-sm border-b border-gray-200">
+          <header className="fixed inset-x-0 top-0 z-50 bg-white shadow-sm border-b border-gray-200">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -3413,36 +3413,38 @@ function App() {
               </div>
             </div>
           </header>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex gap-6">
-            <aside className="w-full sm:w-60 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-              <h2 className="text-lg font-semibold mb-4">Navigation</h2>
-              <ul className="space-y-2">
-                {visibleTabs.map((tab) => (
-                  <li key={tab.id}>
-                    <button
-                      onClick={() => handleTabClick(tab.id)}
-                      className={`w-full text-left px-3 py-2 rounded-md flex items-center justify-between ${
-                        activeTab === tab.id
-                          ? "bg-blue-600 text-white"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
-                    >
-                      <span>{tab.label}</span>
-                      {tab.id === "admin" &&
-                        !isAdmin &&
-                        role !== "agent-audit" && (
-                          <Lock className="w-3 h-3 opacity-50" />
+          <div className="pt-24">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:pl-72">
+              <aside className="hidden lg:block fixed top-24 left-4 w-60 bg-white rounded-xl shadow-sm border border-gray-200 p-4 z-40">
+                <h2 className="text-lg font-semibold mb-4">Navigation</h2>
+                <ul className="space-y-2">
+                  {visibleTabs.map((tab) => (
+                    <li key={tab.id}>
+                      <button
+                        onClick={() => handleTabClick(tab.id)}
+                        className={`w-full text-left px-3 py-2 rounded-md flex items-center justify-between ${
+                          activeTab === tab.id
+                            ? "bg-blue-600 text-white"
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`}
+                      >
+                        <span>{tab.label}</span>
+                        {tab.id === "admin" &&
+                          !isAdmin &&
+                          role !== "agent-audit" && (
+                            <Lock className="w-3 h-3 opacity-50" />
+                          )}
+                        {tab.id === "admin" && isAdmin && (
+                          <ShieldCheck className="w-3 h-3 text-emerald-400" />
                         )}
-                      {tab.id === "admin" && isAdmin && (
-                        <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                      )}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </aside>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </aside>
 
-            <section className="flex-1">{renderTabContent()}</section>
+              <section className="flex-1">{renderTabContent()}</section>
+            </div>
           </div>
 
           {showAdminLogin && (
