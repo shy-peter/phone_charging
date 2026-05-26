@@ -1,4 +1,4 @@
-import { BarChart3, Menu } from "lucide-react";
+import { BarChart3, User } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   PieChart,
@@ -143,7 +143,7 @@ const DEFAULT_POWER_BANKS: PowerBank[] = [
 ];
 
 function App() {
-  const [activeTab, setActiveTab] = useState("agent-login");
+  const [activeTab, setActiveTab] = useState("ops-console");
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
@@ -1158,7 +1158,6 @@ function App() {
     { id: "retrieved-list", label: "Total Charged" },
     { id: "rent-power", label: "Rent Power" },
     { id: "total-rentals", label: "Total Rentals" },
-    { id: "agent-login", label: agentSession ? "Agent Settings" : "Agent Login" },
     { id: "agent-signup", label: "Agent Sign Up" },
   ];
 
@@ -1207,7 +1206,6 @@ function App() {
         "retrieve-phone",
         "retrieved-list",
         "rent-power",
-        "agent-login",
       ]);
     }
     if (role === "view-only") {
@@ -1220,7 +1218,6 @@ function App() {
         "retrieved-list",
         "total-rentals",
         "admin",
-        "agent-login",
       ]);
     }
     if (role === "agent-audit") {
@@ -1232,20 +1229,24 @@ function App() {
         "retrieved-list",
         "total-rentals",
         "admin",
-        "agent-login",
       ]);
     }
-    return new Set(["ops-console", "agent-login", "agent-signup", "admin"]);
+    return new Set(["ops-console", "agent-signup", "admin"]);
   })();
 
   const visibleTabs = tabs.filter((t) => visibleTabIds.has(t.id));
+  const currentAgent = agentSession
+    ? agents.find(
+        (a) => a.username.toLowerCase() === agentSession.username.toLowerCase(),
+      )
+    : null;
 
   useEffect(() => {
     const allowed = visibleTabs.map((t) => t.id);
-    if (allowed.includes(activeTab)) return;
+    if (allowed.includes(activeTab) || activeTab === "agent-login") return;
     const first = allowed[0];
     if (first) setActiveTab(first);
-  }, [activeTab, role, isAdmin]);
+  }, [activeTab, role, isAdmin, visibleTabs]);
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1260,6 +1261,7 @@ function App() {
   };
 
   const handleTabClick = (tabId: string) => {
+    setAgentMenuOpen(false);
     if (!visibleTabIds.has(tabId)) {
       alert("Access denied");
       return;
@@ -1282,12 +1284,6 @@ function App() {
 
   const renderTabContent = () => {
     if (activeTab === "agent-login") {
-      const currentAgent = agentSession
-        ? agents.find(
-            (a) =>
-              a.username.toLowerCase() === agentSession.username.toLowerCase(),
-          )
-        : null;
       return (
         <div className="bg-white rounded-xl shadow-sm p-6 max-w-6xl mx-auto border border-gray-100">
           <div className="flex items-start justify-between gap-6">
@@ -1299,78 +1295,6 @@ function App() {
                 Login to access the parts of the app based on your role.
               </p>
             </div>
-
-            {agentSession ? (
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setAgentMenuOpen((v) => !v)}
-                  className="w-11 h-11 rounded-full bg-blue-600 text-white font-black flex items-center justify-center shadow-sm border border-blue-700"
-                >
-                  {String(currentAgent?.name || agentSession.username || "?")
-                    .trim()
-                    .slice(0, 1)
-                    .toUpperCase()}
-                </button>
-
-                {agentMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-80 rounded-2xl bg-white border border-gray-100 shadow-xl overflow-hidden z-30">
-                    <div className="p-4 bg-gray-50 border-b border-gray-100">
-                      <div className="text-xs font-black uppercase tracking-widest text-gray-400">
-                        Account
-                      </div>
-                      <div className="mt-1 text-lg font-black text-gray-900">
-                        {currentAgent?.name || agentSession.username}
-                      </div>
-                      <div className="mt-1 text-xs font-mono font-bold text-gray-600">
-                        {agentSession.username}
-                      </div>
-                    </div>
-                    <div className="p-4 space-y-3">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500 font-semibold">Role</span>
-                        <span className="font-bold text-gray-900">
-                          {agentSession.role}
-                        </span>
-                      </div>
-                      {currentAgent?.email && (
-                        <div className="flex justify-between text-sm gap-3">
-                          <span className="text-gray-500 font-semibold">
-                            Email
-                          </span>
-                          <span className="font-semibold text-gray-900 truncate">
-                            {currentAgent.email}
-                          </span>
-                        </div>
-                      )}
-                      {currentAgent?.phone && (
-                        <div className="flex justify-between text-sm gap-3">
-                          <span className="text-gray-500 font-semibold">
-                            Phone
-                          </span>
-                          <span className="font-semibold text-gray-900">
-                            {currentAgent.phone}
-                          </span>
-                        </div>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAgentMenuOpen(false);
-                          setAgentSession(null);
-                          setAgentLoginPassword("");
-                          setAgentLoginError("");
-                          setAgentLoginUsername("");
-                        }}
-                        className="w-full bg-gray-900 hover:bg-black text-white px-4 py-2.5 rounded-xl font-black"
-                      >
-                        Logout
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : null}
           </div>
 
           {!!agentLoginError && (
@@ -3350,9 +3274,112 @@ function App() {
                     </p>
                   </div>
                 </div>
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                  <Menu className="w-6 h-6 text-gray-600" />
-                </button>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setAgentMenuOpen((v) => !v)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    aria-label="Open agent menu"
+                  >
+                    {agentSession ? (
+                      <span className="w-10 h-10 rounded-full bg-blue-600 text-white font-black flex items-center justify-center">
+                        {String(currentAgent?.name || agentSession.username || "?")
+                          .trim()
+                          .slice(0, 1)
+                          .toUpperCase()}
+                      </span>
+                    ) : (
+                      <User className="w-6 h-6 text-gray-600" />
+                    )}
+                  </button>
+
+                  {agentMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-80 rounded-2xl bg-white border border-gray-100 shadow-xl overflow-hidden z-30">
+                      <div className="p-4 bg-gray-50 border-b border-gray-100">
+                        <div className="text-xs font-black uppercase tracking-widest text-gray-400">
+                          Account
+                        </div>
+                        {agentSession ? (
+                          <>
+                            <div className="mt-1 text-lg font-black text-gray-900">
+                              {currentAgent?.name || agentSession.username}
+                            </div>
+                            <div className="mt-1 text-xs font-mono font-bold text-gray-600">
+                              {agentSession.username}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="mt-1 text-lg font-black text-gray-900">
+                            Guest
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-4 space-y-3">
+                        {agentSession ? (
+                          <>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-500 font-semibold">Role</span>
+                              <span className="font-bold text-gray-900">
+                                {agentSession.role}
+                              </span>
+                            </div>
+                            {currentAgent?.email && (
+                              <div className="flex justify-between text-sm gap-3">
+                                <span className="text-gray-500 font-semibold">Email</span>
+                                <span className="font-semibold text-gray-900 truncate">
+                                  {currentAgent.email}
+                                </span>
+                              </div>
+                            )}
+                            {currentAgent?.phone && (
+                              <div className="flex justify-between text-sm gap-3">
+                                <span className="text-gray-500 font-semibold">Phone</span>
+                                <span className="font-semibold text-gray-900">
+                                  {currentAgent.phone}
+                                </span>
+                              </div>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAgentMenuOpen(false);
+                                setActiveTab("agent-login");
+                              }}
+                              className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-black"
+                            >
+                              Agent Settings
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAgentMenuOpen(false);
+                                setAgentSession(null);
+                                setAgentLoginPassword("");
+                                setAgentLoginError("");
+                                setAgentLoginUsername("");
+                                setActiveTab("ops-console");
+                              }}
+                              className="w-full bg-gray-900 hover:bg-black text-white px-4 py-2.5 rounded-xl font-black"
+                            >
+                              Logout
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAgentMenuOpen(false);
+                              setActiveTab("agent-login");
+                            }}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-black"
+                          >
+                            Agent Login
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </header>
