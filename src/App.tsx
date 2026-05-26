@@ -896,6 +896,29 @@ function App() {
 
   const chargingDevices = registeredDevices;
   const retrievedDevices = deviceHistory;
+  const currentAgentUsername = agentSession?.username?.trim().toLowerCase() || "";
+  const agentChargingDevices = chargingDevices.filter((device) => {
+    const registeredBy = String(device.registeredBy || "")
+      .trim()
+      .toLowerCase();
+    return currentAgentUsername.length > 0 && registeredBy === currentAgentUsername;
+  });
+  const agentRetrievedDevices = retrievedDevices.filter((device) => {
+    const registeredBy = String(device.registeredBy || "")
+      .trim()
+      .toLowerCase();
+    const releasedBy = String(device.releasedBy || "")
+      .trim()
+      .toLowerCase();
+    return (
+      currentAgentUsername.length > 0 &&
+      (registeredBy === currentAgentUsername || releasedBy === currentAgentUsername)
+    );
+  });
+  const agentTotalCharge = agentRetrievedDevices.reduce(
+    (sum, device) => sum + (typeof device.price === "number" ? device.price : 0),
+    0,
+  );
 
   // Live metrics counting from 0 based on session data
   const totalRegisteredCount =
@@ -1125,6 +1148,7 @@ function App() {
   };
 
   const baseTabs = [
+    { id: "summary", label: "Summary" },
     { id: "daily-summary", label: "Daily Summary" },
     { id: "ops-console", label: "Ops Console" },
     { id: "dashboard", label: "Dashboard" },
@@ -1175,6 +1199,7 @@ function App() {
     }
     if (role === "agent-sales") {
       return new Set([
+        "summary",
         "daily-summary",
         "ops-console",
         "device-registration",
@@ -1186,6 +1211,7 @@ function App() {
     }
     if (role === "view-only") {
       return new Set([
+        "summary",
         "daily-summary",
         "ops-console",
         "dashboard",
@@ -1198,6 +1224,7 @@ function App() {
     }
     if (role === "agent-audit") {
       return new Set([
+        "summary",
         "ops-console",
         "dashboard",
         "device-charging",
@@ -1465,6 +1492,155 @@ function App() {
               </button>
             </form>
           )}
+        </div>
+      );
+    }
+
+    if (activeTab === "summary") {
+      const currentAgent = agentSession
+        ? agents.find(
+            (agent) =>
+              agent.username.toLowerCase() === agentSession.username.toLowerCase(),
+          )
+        : undefined;
+
+      if (!agentSession) {
+        return (
+          <div className="bg-white rounded-xl shadow-sm p-8 max-w-xl mx-auto border border-gray-100">
+            <h2 className="text-xl font-bold text-gray-900">Login required</h2>
+            <p className="text-sm text-gray-500 mt-2">
+              Sign in as an agent to view your personalized summary.
+            </p>
+          </div>
+        );
+      }
+
+      const recentActivities = [
+        ...agentChargingDevices.map((device) => ({
+          type: "Charging" as const,
+          title: device.deviceName,
+          subtitle: device.username,
+          amount: device.price,
+          timestamp: device.registeredAt,
+          meta: `${device.deviceType} • Slot ${device.slotNumber}`,
+        })),
+        ...agentRetrievedDevices.map((device) => ({
+          type: "Retrieved" as const,
+          title: device.deviceName,
+          subtitle: device.username,
+          amount: device.price,
+          timestamp: device.retrievedAt || device.registeredAt,
+          meta: `${device.deviceType} • ${device.paymentStatus}`,
+        })),
+      ]
+        .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+        .slice(0, 5);
+
+      return (
+        <div className="bg-white rounded-xl shadow-sm p-6 max-w-4xl mx-auto border border-gray-100">
+          <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+            <div>
+              <p className="text-sm font-bold text-blue-600 uppercase tracking-widest">
+                Agent summary
+              </p>
+              <h2 className="text-2xl font-bold text-gray-900 mt-1">
+                {currentAgent?.name || agentSession.username}
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Personalized snapshot of your active and completed device activity.
+              </p>
+            </div>
+            <div className="rounded-xl bg-blue-50 border border-blue-100 px-4 py-3 text-sm text-blue-700 font-semibold">
+              Signed in as {agentSession.username}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-5">
+              <p className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                Device charging
+              </p>
+              <div className="mt-3 text-3xl font-black text-gray-900">
+                {agentChargingDevices.length}
+              </div>
+              <p className="mt-2 text-sm text-gray-500">
+                Devices currently registered by this agent and still charging.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-5">
+              <p className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                Retrieved devices
+              </p>
+              <div className="mt-3 text-3xl font-black text-gray-900">
+                {agentRetrievedDevices.length}
+              </div>
+              <p className="mt-2 text-sm text-gray-500">
+                Completed handovers tied to this agent’s records.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-5">
+              <p className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                Total charge
+              </p>
+              <div className="mt-3 text-3xl font-black text-gray-900">
+                ₦{agentTotalCharge.toLocaleString()}
+              </div>
+              <p className="mt-2 text-sm text-gray-500">
+                Revenue from the devices retrieved under this agent.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 rounded-xl border border-gray-100 bg-gray-50 p-4">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Recent Activities</h3>
+                <p className="text-sm text-gray-500">
+                  Latest charging and retrieval actions tied to your account.
+                </p>
+              </div>
+            </div>
+
+            {recentActivities.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-500">
+                No recent activity yet for this agent.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentActivities.map((activity) => (
+                  <div
+                    key={`${activity.type}-${activity.title}-${activity.timestamp.getTime()}`}
+                    className="rounded-xl border border-gray-100 bg-white px-4 py-3"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-bold text-gray-900">
+                          {activity.title}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {activity.subtitle}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-gray-900">
+                          ₦{activity.amount.toLocaleString()}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {activity.type}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
+                      <span>{activity.meta}</span>
+                      <span>{activity.timestamp.toLocaleString("en-US")}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       );
     }
