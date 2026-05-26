@@ -1386,7 +1386,7 @@ function App() {
                     setAgentMenuOpen(false);
                     setAgentLoginPassword("");
                     setAgentLoginError("");
-                    setActiveTab("ops-console");
+                    setActiveTab("summary");
                   })
                   .catch(() => setAgentLoginError("Login failed. Try again."));
               }}
