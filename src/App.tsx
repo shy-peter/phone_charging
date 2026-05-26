@@ -1206,6 +1206,7 @@ function App() {
         "device-charging",
         "retrieve-phone",
         "retrieved-list",
+        "rent-power",
         "agent-login",
       ]);
     }
