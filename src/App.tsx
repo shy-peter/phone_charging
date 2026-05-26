@@ -1158,7 +1158,7 @@ function App() {
     { id: "retrieved-list", label: "Total Charged" },
     { id: "rent-power", label: "Rent Power" },
     { id: "total-rentals", label: "Total Rentals" },
-    { id: "agent-login", label: "Agent Login" },
+    { id: "agent-login", label: agentSession ? "Agent Settings" : "Agent Login" },
     { id: "agent-signup", label: "Agent Sign Up" },
   ];
 
