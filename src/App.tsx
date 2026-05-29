@@ -319,6 +319,9 @@ function App() {
   const [dailySummaryView, setDailySummaryView] = useState<"chart" | "table">(
     "chart",
   );
+  const [dailySummaryRange, setDailySummaryRange] = useState<
+    "day" | "week" | "month" | "year"
+  >("day");
   const [revealedDeviceNames, setRevealedDeviceNames] = useState<
     Record<string, boolean>
   >({});
@@ -1596,39 +1599,48 @@ function App() {
         );
       }
 
-      const startOfToday = new Date();
-      startOfToday.setHours(0, 0, 0, 0);
-      const endOfToday = new Date(startOfToday);
-      endOfToday.setDate(endOfToday.getDate() + 1);
-      const todayChargingRevenue = retrievedDevices
+      const now = new Date();
+      const startOfRange = (() => {
+        const start = new Date(now);
+        if (dailySummaryRange === "week") {
+          start.setDate(now.getDate() - 6);
+        } else if (dailySummaryRange === "month") {
+          start.setMonth(now.getMonth() - 1);
+        } else if (dailySummaryRange === "year") {
+          start.setFullYear(now.getFullYear() - 1);
+        }
+        start.setHours(0, 0, 0, 0);
+        return start;
+      })();
+      const endOfRange = new Date(now);
+      endOfRange.setHours(23, 59, 59, 999);
+
+      const rangeLabel =
+        dailySummaryRange === "day"
+          ? "Today"
+          : dailySummaryRange === "week"
+            ? "Last 7 days"
+            : dailySummaryRange === "month"
+              ? "Last 30 days"
+              : "Last 12 months";
+
+      const rangeChargingRevenue = retrievedDevices
         .filter(
-          (d) =>
-            d.retrievedAt &&
-            d.retrievedAt >= startOfToday &&
-            d.retrievedAt < endOfToday,
+          (d) => d.retrievedAt && d.retrievedAt >= startOfRange && d.retrievedAt <= endOfRange,
         )
         .reduce((sum, d) => sum + d.price, 0);
-      const todayRetrievals = retrievedDevices.filter(
-        (d) =>
-          d.retrievedAt &&
-          d.retrievedAt >= startOfToday &&
-          d.retrievedAt < endOfToday,
+      const rangeRetrievals = retrievedDevices.filter(
+        (d) => d.retrievedAt && d.retrievedAt >= startOfRange && d.retrievedAt <= endOfRange,
       ).length;
 
-      const todayRegisteredDevices = [
+      const rangeRegisteredDevices = [
         ...chargingDevices,
         ...retrievedDevices,
       ].filter(
-        (d) =>
-          d.registeredAt &&
-          d.registeredAt >= startOfToday &&
-          d.registeredAt < endOfToday,
+        (d) => d.registeredAt && d.registeredAt >= startOfRange && d.registeredAt <= endOfRange,
       );
-      const todayReleasedDevices = retrievedDevices.filter(
-        (d) =>
-          d.retrievedAt &&
-          d.retrievedAt >= startOfToday &&
-          d.retrievedAt < endOfToday,
+      const rangeReleasedDevices = retrievedDevices.filter(
+        (d) => d.retrievedAt && d.retrievedAt >= startOfRange && d.retrievedAt <= endOfRange,
       );
 
       const perfMap = new Map<
@@ -1641,7 +1653,7 @@ function App() {
           registeredRevenue: number;
         }
       >();
-      for (const d of todayRegisteredDevices) {
+      for (const d of rangeRegisteredDevices) {
         const agent = String(d.registeredBy || "").trim() || "Unknown";
         const row = perfMap.get(agent) || {
           agent,
@@ -1655,7 +1667,7 @@ function App() {
         row.activities = row.registrations + row.releases;
         perfMap.set(agent, row);
       }
-      for (const d of todayReleasedDevices) {
+      for (const d of rangeReleasedDevices) {
         const agent = String(d.releasedBy || "").trim() || "Unknown";
         const row = perfMap.get(agent) || {
           agent,
@@ -1687,8 +1699,8 @@ function App() {
 
       const countsPie = [
         { name: "Charging Now", value: chargingDevices.length },
-        { name: "Registered Today", value: todayRegisteredDevices.length },
-        { name: "Retrieved Today", value: todayRetrievals },
+        { name: `Registered (${rangeLabel})`, value: rangeRegisteredDevices.length },
+        { name: `Retrieved (${rangeLabel})`, value: rangeRetrievals },
       ].filter((d) => d.value > 0);
 
       const activityPie = (() => {
@@ -1711,9 +1723,9 @@ function App() {
         return other > 0 ? [...top, { name: "Others", value: other }] : top;
       })();
 
-      const todayBalanceByType = (() => {
+      const rangeBalanceByType = (() => {
         const map = new Map<string, number>();
-        for (const d of todayReleasedDevices) {
+        for (const d of rangeReleasedDevices) {
           const key = String(d.deviceType || "Unknown");
           map.set(
             key,
@@ -1734,25 +1746,42 @@ function App() {
                 Daily Summary
               </h2>
               <p className="text-sm text-gray-500 mt-1">
-                Today’s account balance and daily price totals.
+                View account balance and activity for the selected performance period.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <span className="text-xs font-bold bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
-                  {startOfToday.toLocaleDateString()}
+                  {rangeLabel}
                 </span>
                 <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                  Balance ₦{todayChargingRevenue.toLocaleString()}
+                  Balance ₦{rangeChargingRevenue.toLocaleString()}
                 </span>
               </div>
             </div>
-            <button
-              onClick={() =>
-                setDailySummaryView((v) => (v === "chart" ? "table" : "chart"))
-              }
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm"
-            >
-              {dailySummaryView === "chart" ? "Show in table" : "Show in chart"}
-            </button>
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex flex-wrap gap-2">
+                {(["day", "week", "month", "year"] as const).map((range) => (
+                  <button
+                    key={range}
+                    onClick={() => setDailySummaryRange(range)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+                      dailySummaryRange === range
+                        ? "bg-blue-600 text-white border-blue-600"
+                        : "bg-white text-gray-700 border-gray-200 hover:border-blue-200 hover:text-blue-700"
+                    }`}
+                  >
+                    {range.charAt(0).toUpperCase() + range.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() =>
+                  setDailySummaryView((v) => (v === "chart" ? "table" : "chart"))
+                }
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm"
+              >
+                {dailySummaryView === "chart" ? "Show in table" : "Show in chart"}
+              </button>
+            </div>
           </div>
 
           {dailySummaryView === "chart" ? (
@@ -1761,33 +1790,33 @@ function App() {
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <h3 className="font-bold text-gray-900">
-                      Today Balance (by device type)
+                      Balance by Device Type ({rangeLabel})
                     </h3>
                     <p className="text-xs text-gray-500 font-semibold">
-                      Based on devices retrieved today
+                      Based on devices retrieved in this period
                     </p>
                   </div>
                   <span className="text-[10px] font-black bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                    ₦{todayChargingRevenue.toLocaleString()}
+                    ₦{rangeChargingRevenue.toLocaleString()}
                   </span>
                 </div>
-                {todayBalanceByType.length === 0 ? (
+                {rangeBalanceByType.length === 0 ? (
                   <div className="h-[180px] flex items-center justify-center text-gray-400 font-semibold">
-                    No balance yet today
+                    No balance in this period
                   </div>
                 ) : (
                   <div style={{ width: "100%", height: 180 }}>
                     <ResponsiveContainer>
                       <PieChart>
                         <Pie
-                          data={todayBalanceByType}
+                          data={rangeBalanceByType}
                           dataKey="value"
                           nameKey="name"
                           innerRadius={45}
                           outerRadius={75}
                           paddingAngle={3}
                         >
-                          {todayBalanceByType.map((_, idx) => (
+                          {rangeBalanceByType.map((_, idx) => (
                             <Cell
                               key={idx}
                               fill={colors[idx % colors.length]}
@@ -1808,7 +1837,7 @@ function App() {
               <div className="bg-white rounded-xl border border-gray-100 p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h3 className="font-bold text-gray-900">Today Counts</h3>
+                    <h3 className="font-bold text-gray-900">Counts ({rangeLabel})</h3>
                     <p className="text-xs text-gray-500 font-semibold">
                       Charging, registrations, retrievals
                     </p>
@@ -1816,7 +1845,7 @@ function App() {
                 </div>
                 {countsPie.length === 0 ? (
                   <div className="h-[180px] flex items-center justify-center text-gray-400 font-semibold">
-                    No activity yet today
+                    No activity in this period
                   </div>
                 ) : (
                   <div style={{ width: "100%", height: 180 }}>
@@ -1852,7 +1881,7 @@ function App() {
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <h3 className="font-bold text-gray-900">
-                      Agent Performance (Today)
+                      Agent Performance ({rangeLabel})
                     </h3>
                     <p className="text-xs text-gray-500 font-semibold">
                       Activities = registrations + releases
@@ -1861,7 +1890,7 @@ function App() {
                 </div>
                 {activityPie.length === 0 ? (
                   <div className="h-[180px] flex items-center justify-center text-gray-400 font-semibold">
-                    No activity today
+                    No activity in this period
                   </div>
                 ) : (
                   <div style={{ width: "100%", height: 180 }}>
@@ -1897,15 +1926,15 @@ function App() {
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <h3 className="font-bold text-gray-900">
-                      Revenue by Agent (Today)
+                      Revenue by Agent ({rangeLabel})
                     </h3>
                     <p className="text-xs text-gray-500 font-semibold">
-                      Based on devices registered today
+                      Based on devices registered in this period
                     </p>
                   </div>
                   <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">
                     ₦
-                    {todayRegisteredDevices
+                    {rangeRegisteredDevices
                       .reduce(
                         (sum, d) =>
                           sum + (typeof d.price === "number" ? d.price : 0),
@@ -1916,7 +1945,7 @@ function App() {
                 </div>
                 {revenuePie.length === 0 ? (
                   <div className="h-[180px] flex items-center justify-center text-gray-400 font-semibold">
-                    No registrations today
+                    No registrations in this period
                   </div>
                 ) : (
                   <div style={{ width: "100%", height: 180 }}>
@@ -1953,10 +1982,10 @@ function App() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-5 rounded-xl border border-gray-100 bg-gray-50">
                   <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                    Today Balance
+                    Balance ({rangeLabel})
                   </div>
                   <div className="mt-2 text-2xl font-black text-gray-900">
-                    ₦{todayChargingRevenue.toLocaleString()}
+                    ₦{rangeChargingRevenue.toLocaleString()}
                   </div>
                   <div className="mt-1 text-xs text-gray-500 font-semibold">
                     Charging revenue only
@@ -1975,10 +2004,10 @@ function App() {
                 </div>
                 <div className="p-5 rounded-xl border border-gray-100 bg-gray-50">
                   <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                    Retrieved Today
+                    Retrieved ({rangeLabel})
                   </div>
                   <div className="mt-2 text-2xl font-black text-gray-900">
-                    {todayRetrievals}
+                    {rangeRetrievals}
                   </div>
                   <div className="mt-1 text-xs text-gray-500 font-semibold">
                     Completed handovers
@@ -1991,14 +2020,14 @@ function App() {
                   <div className="p-4 border-b border-gray-100 flex items-center justify-between">
                     <div>
                       <h3 className="font-bold text-gray-900">
-                        Agent Performance (Today)
+                        Agent Performance ({rangeLabel})
                       </h3>
                       <p className="text-xs text-gray-500 font-semibold">
                         Most activities: registrations + releases
                       </p>
                     </div>
                     <span className="text-xs font-bold bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
-                      {startOfToday.toLocaleDateString()}
+                      {rangeLabel}
                     </span>
                   </div>
                   <div className="overflow-x-auto">
@@ -2018,7 +2047,7 @@ function App() {
                               colSpan={4}
                               className="px-4 py-8 text-center text-gray-400"
                             >
-                              No activity today
+                              No activity in this period
                             </td>
                           </tr>
                         ) : (
@@ -2051,15 +2080,15 @@ function App() {
                   <div className="p-4 border-b border-gray-100 flex items-center justify-between">
                     <div>
                       <h3 className="font-bold text-gray-900">
-                        Revenue by Agent (Today)
+                        Revenue by Agent ({rangeLabel})
                       </h3>
                       <p className="text-xs text-gray-500 font-semibold">
-                        Based on devices registered today
+                        Based on devices registered in this period
                       </p>
                     </div>
                     <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-1 rounded-full">
                       ₦
-                      {todayRegisteredDevices
+                      {rangeRegisteredDevices
                         .reduce(
                           (sum, d) =>
                             sum + (typeof d.price === "number" ? d.price : 0),
@@ -2084,7 +2113,7 @@ function App() {
                               colSpan={3}
                               className="px-4 py-8 text-center text-gray-400"
                             >
-                              No registrations today
+                              No registrations in this period
                             </td>
                           </tr>
                         ) : (
