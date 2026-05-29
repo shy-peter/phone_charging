@@ -1180,6 +1180,7 @@ function App() {
     { id: "retrieve-phone", label: "Retrieve Phone" },
     { id: "retrieved-list", label: "Total Charged" },
     { id: "rent-power", label: "Rent Power" },
+    { id: "retrieve-power", label: "Retrieve Power" },
     { id: "total-rentals", label: "Total Rentals" },
     { id: "agent-signup", label: "Agent Sign Up" },
   ];
@@ -1229,6 +1230,8 @@ function App() {
         "retrieve-phone",
         "retrieved-list",
         "rent-power",
+        "retrieve-power",
+        "total-rentals",
       ]);
     }
     if (role === "view-only") {
@@ -2842,6 +2845,93 @@ function App() {
           canAddPowerBank={isAdmin}
           canRent={agentSession?.role === "agent-sales" || isAdmin}
         />
+      );
+    }
+
+    if (activeTab === "retrieve-power") {
+      if (!canPerformActions) {
+        return (
+          <div className="bg-white rounded-xl shadow-sm p-8 max-w-xl mx-auto border border-gray-100">
+            <h2 className="text-xl font-bold text-gray-900">Access denied</h2>
+          </div>
+        );
+      }
+
+      const activeRentals = rentals.filter((rental) => rental.status === "active");
+
+      return (
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Retrieve Power</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Use the rental ID or QR code to locate and retrieve an active power bank.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+              <input
+                value={rentalReturnValue}
+                onChange={(e) => setRentalReturnValue(e.target.value)}
+                placeholder="Rental ID or QR data"
+                className="w-full lg:w-80 px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none font-mono text-xs"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const ok = handleReturnRental(rentalReturnValue);
+                  if (!ok) alert("Rental not found. Please check the code.");
+                  else alert("Power bank marked as retrieved.");
+                  setRentalReturnValue("");
+                }}
+                className="bg-emerald-600 text-white px-4 py-2.5 rounded-lg font-bold hover:bg-emerald-700 transition-all"
+              >
+                Retrieve Power Bank
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-5">
+              <h3 className="text-lg font-bold text-gray-900">Active rentals ready to retrieve</h3>
+              <p className="text-sm text-gray-500 mt-1">These are currently hired power banks awaiting return or handover confirmation.</p>
+              {activeRentals.length === 0 ? (
+                <div className="mt-4 rounded-xl border border-dashed border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-500">
+                  No active power bank rentals at the moment.
+                </div>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {activeRentals.map((rental) => (
+                    <div key={rental.id} className="rounded-xl border border-emerald-100 bg-white p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-black text-gray-900">{rental.powerBankName}</p>
+                          <p className="text-xs text-gray-500 mt-1">{rental.userName} • {rental.userPhone}</p>
+                        </div>
+                        <span className="rounded-full bg-emerald-100 text-emerald-700 px-2 py-1 text-[10px] font-bold uppercase">Active</span>
+                      </div>
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
+                        <span>Rental ID: {rental.id}</span>
+                        <span>Method: {rental.retrievalMethod === "fingerprint" ? "Fingerprint" : rental.retrievalMethod === "manual" ? "Manual" : "QR Code"}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-5">
+              <h3 className="text-lg font-bold text-gray-900">How to retrieve</h3>
+              <ul className="mt-3 space-y-3 text-sm text-gray-600">
+                <li>1. Enter the rental ID or scan the QR label printed for the power bank.</li>
+                <li>2. Confirm the power bank is returned or retrieved from the customer.</li>
+                <li>3. Mark the rental as returned to update inventory and records.</li>
+              </ul>
+              <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-800 font-semibold">
+                This view is designed for the retrieval point at the power-bank counter.
+              </div>
+            </div>
+          </div>
+        </div>
       );
     }
 
