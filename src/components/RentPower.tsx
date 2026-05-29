@@ -34,6 +34,7 @@ export interface PowerBankRental {
   rentalDate: Date;
   amountPaid: number;
   status: 'active' | 'returned';
+  retrievalMethod?: 'qr' | 'fingerprint' | 'manual';
   returnedAt?: Date;
   returnedBy?: string;
 }
@@ -58,6 +59,7 @@ export default function RentPower({
   const [userPhone, setUserPhone] = useState("");
   const [userAddress, setUserAddress] = useState("");
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
+  const [retrievalMethod, setRetrievalMethod] = useState<'qr' | 'fingerprint' | 'manual'>('qr');
   const [isFamiliar, setIsFamiliar] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -119,7 +121,8 @@ export default function RentPower({
         qrData,
         rentalDate: new Date(),
         amountPaid: selectedPB.pricePerDay,
-        status: 'active'
+        status: 'active',
+        retrievalMethod,
       };
 
       onRent(rental);
@@ -136,6 +139,7 @@ export default function RentPower({
     setUserPhone("");
     setUserAddress("");
     setUserPhoto(null);
+    setRetrievalMethod('qr');
     setIsFamiliar(false);
   };
 
@@ -366,6 +370,21 @@ export default function RentPower({
                     placeholder="Enter phone number"
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Retrieval Method
+                  </label>
+                  <select
+                    value={retrievalMethod}
+                    onChange={(e) => setRetrievalMethod(e.target.value as 'qr' | 'fingerprint' | 'manual')}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                  >
+                    <option value="qr">QR Code</option>
+                    <option value="fingerprint">Fingerprint</option>
+                    <option value="manual">Manual / Staff Confirmation</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Choose how this power bank will be retrieved or verified later.</p>
                 </div>
               </div>
 

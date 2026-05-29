@@ -659,13 +659,14 @@ export default function AdminDashboard({
                 <th className="px-4 py-3">Power Bank</th>
                 <th className="px-4 py-3">Amount</th>
                 <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3">Retrieval Method</th>
                 <th className="px-4 py-3">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {rentals.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-gray-400">No rentals yet</td>
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-400">No rentals yet</td>
                 </tr>
               ) : (
                 [...rentals].reverse().slice(0, 5).map((rental) => (
@@ -686,6 +687,13 @@ export default function AdminDashboard({
                     <td className="px-4 py-3 font-bold text-gray-900">₦{rental.amountPaid.toLocaleString()}</td>
                     <td className="px-4 py-3 text-[10px] text-gray-500">
                       {new Date(rental.rentalDate).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-[10px] text-gray-700 font-semibold">
+                      {rental.retrievalMethod === 'fingerprint'
+                        ? 'Fingerprint'
+                        : rental.retrievalMethod === 'manual'
+                          ? 'Manual'
+                          : 'QR Code'}
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 uppercase">

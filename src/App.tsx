@@ -2910,6 +2910,7 @@ function App() {
                     <th className="py-4 font-semibold text-gray-600">
                       Rental Date
                     </th>
+                    <th className="py-4 font-semibold text-gray-600">Retrieval Method</th>
                     <th className="py-4 font-semibold text-gray-600">Status</th>
                     <th className="py-4 font-semibold text-gray-600">Action</th>
                   </tr>
@@ -2957,6 +2958,13 @@ function App() {
                       </td>
                       <td className="py-4 text-sm text-gray-500">
                         {rental.rentalDate.toLocaleString()}
+                      </td>
+                      <td className="py-4 text-sm text-gray-700 font-semibold">
+                        {rental.retrievalMethod === 'fingerprint'
+                          ? 'Fingerprint'
+                          : rental.retrievalMethod === 'manual'
+                            ? 'Manual'
+                            : 'QR Code'}
                       </td>
                       <td className="py-4">
                         <span
