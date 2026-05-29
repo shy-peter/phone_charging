@@ -1463,6 +1463,20 @@ function App() {
         );
       }
 
+      const rentalRevenueTotal = rentals.reduce(
+        (sum, rental) => sum + (typeof rental.amountPaid === "number" ? rental.amountPaid : 0),
+        0,
+      );
+      const activeRentals = rentals.filter((rental) => rental.status === "active");
+      const returnedRentals = rentals.filter((rental) => rental.status === "returned");
+      const retrievalMethodCounts = rentals.reduce(
+        (map, rental) => {
+          const key = rental.retrievalMethod === "fingerprint" ? "Fingerprint" : rental.retrievalMethod === "manual" ? "Manual" : "QR Code";
+          map.set(key, (map.get(key) || 0) + 1);
+          return map;
+        },
+        new Map<string, number>(),
+      );
       const recentActivities = [
         ...agentChargingDevices.map((device) => ({
           type: "Charging" as const,
@@ -1538,6 +1552,19 @@ function App() {
               <p className="mt-2 text-sm text-gray-500">
                 Revenue from the devices retrieved under this agent.
               </p>
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-5">
+              <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">Power rentals</p>
+              <div className="mt-3 text-3xl font-black text-gray-900">{rentals.length}</div>
+              <p className="mt-2 text-sm text-gray-600">Active {activeRentals.length} • Returned {returnedRentals.length} • Revenue ₦{rentalRevenueTotal.toLocaleString()}</p>
+            </div>
+            <div className="rounded-xl border border-blue-100 bg-blue-50 p-5">
+              <p className="text-xs font-bold uppercase tracking-wider text-blue-700">Retrieval methods</p>
+              <div className="mt-3 text-lg font-black text-gray-900">QR {retrievalMethodCounts.get("QR Code") || 0} • FP {retrievalMethodCounts.get("Fingerprint") || 0} • Manual {retrievalMethodCounts.get("Manual") || 0}</div>
+              <p className="mt-2 text-sm text-gray-600">Current power-bank retrieval breakdown across rented units.</p>
             </div>
           </div>
 
@@ -1637,6 +1664,24 @@ function App() {
               ? "Last 30 days"
               : "Last 12 months";
 
+      const rangeRentalRevenue = rentals
+        .filter((rental) => rental.rentalDate && rental.rentalDate >= startOfRange && rental.rentalDate <= endOfRange)
+        .reduce((sum, rental) => sum + (typeof rental.amountPaid === "number" ? rental.amountPaid : 0), 0);
+      const rangeActiveRentals = rentals.filter(
+        (rental) => rental.status === "active" && rental.rentalDate && rental.rentalDate >= startOfRange && rental.rentalDate <= endOfRange,
+      ).length;
+      const rangeReturnedRentals = rentals.filter(
+        (rental) => rental.status === "returned" && rental.rentalDate && rental.rentalDate >= startOfRange && rental.rentalDate <= endOfRange,
+      ).length;
+      const rangeRetrievalMethodCounts = rentals.reduce(
+        (map, rental) => {
+          if (!rental.rentalDate || rental.rentalDate < startOfRange || rental.rentalDate > endOfRange) return map;
+          const key = rental.retrievalMethod === "fingerprint" ? "Fingerprint" : rental.retrievalMethod === "manual" ? "Manual" : "QR Code";
+          map.set(key, (map.get(key) || 0) + 1);
+          return map;
+        },
+        new Map<string, number>(),
+      );
       const rangeChargingRevenue = retrievedDevices
         .filter(
           (d) => d.retrievedAt && d.retrievedAt >= startOfRange && d.retrievedAt <= endOfRange,
@@ -2028,6 +2073,24 @@ function App() {
                 </div>
               </div>
 
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-5 rounded-xl border border-emerald-100 bg-emerald-50">
+                  <div className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Power rentals ({rangeLabel})</div>
+                  <div className="mt-2 text-2xl font-black text-gray-900">{rentals.filter((rental) => rental.rentalDate && rental.rentalDate >= startOfRange && rental.rentalDate <= endOfRange).length}</div>
+                  <div className="mt-1 text-xs text-gray-500 font-semibold">Active {rangeActiveRentals} • Returned {rangeReturnedRentals} • Revenue ₦{rangeRentalRevenue.toLocaleString()}</div>
+                </div>
+                <div className="p-5 rounded-xl border border-blue-100 bg-blue-50">
+                  <div className="text-xs font-bold text-blue-700 uppercase tracking-wider">Retrieval methods ({rangeLabel})</div>
+                  <div className="mt-2 text-sm font-black text-gray-900">QR {rangeRetrievalMethodCounts.get("QR Code") || 0} • FP {rangeRetrievalMethodCounts.get("Fingerprint") || 0} • Manual {rangeRetrievalMethodCounts.get("Manual") || 0}</div>
+                  <div className="mt-1 text-xs text-gray-500 font-semibold">Current power-bank retrieval mix for this period.</div>
+                </div>
+                <div className="p-5 rounded-xl border border-gray-100 bg-gray-50">
+                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">Balance ({rangeLabel})</div>
+                  <div className="mt-2 text-2xl font-black text-gray-900">₦{rangeChargingRevenue.toLocaleString()}</div>
+                  <div className="mt-1 text-xs text-gray-500 font-semibold">Charging revenue only</div>
+                </div>
+              </div>
+
               <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
                   <div className="p-4 border-b border-gray-100 flex items-center justify-between">
@@ -2169,6 +2232,50 @@ function App() {
           d.retrievedAt >= startOfToday &&
           d.retrievedAt < endOfToday,
       ).length;
+      const todayRentalRevenue = rentals
+        .filter(
+          (rental) =>
+            rental.rentalDate &&
+            rental.rentalDate >= startOfToday &&
+            rental.rentalDate < endOfToday,
+        )
+        .reduce(
+          (sum, rental) =>
+            sum + (typeof rental.amountPaid === "number" ? rental.amountPaid : 0),
+          0,
+        );
+      const todayRentals = rentals.filter(
+        (rental) =>
+          rental.rentalDate &&
+          rental.rentalDate >= startOfToday &&
+          rental.rentalDate < endOfToday,
+      );
+      const todayActiveRentals = todayRentals.filter(
+        (rental) => rental.status === "active",
+      ).length;
+      const todayReturnedRentals = todayRentals.filter(
+        (rental) => rental.status === "returned",
+      ).length;
+      const todayRetrievalMethodCounts = rentals.reduce(
+        (map, rental) => {
+          if (
+            !rental.rentalDate ||
+            rental.rentalDate < startOfToday ||
+            rental.rentalDate >= endOfToday
+          ) {
+            return map;
+          }
+          const key =
+            rental.retrievalMethod === "fingerprint"
+              ? "Fingerprint"
+              : rental.retrievalMethod === "manual"
+                ? "Manual"
+                : "QR Code";
+          map.set(key, (map.get(key) || 0) + 1);
+          return map;
+        },
+        new Map<string, number>(),
+      );
 
       const todayRegisteredDevices = [
         ...chargingDevices,
@@ -2325,6 +2432,24 @@ function App() {
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-4">
+                      <div className="text-[10px] font-black uppercase tracking-wider text-emerald-100/80">Power rentals</div>
+                      <div className="mt-2 text-2xl font-black text-white">{todayRentals.length}</div>
+                      <div className="mt-1 text-[11px] text-emerald-100/80">Active {todayActiveRentals} • Returned {todayReturnedRentals} • ₦{todayRentalRevenue.toLocaleString()}</div>
+                    </div>
+                    <div className="rounded-xl border border-blue-400/20 bg-blue-500/10 p-4">
+                      <div className="text-[10px] font-black uppercase tracking-wider text-blue-100/80">Retrieval methods</div>
+                      <div className="mt-2 text-sm font-black text-white">QR {todayRetrievalMethodCounts.get("QR Code") || 0} • FP {todayRetrievalMethodCounts.get("Fingerprint") || 0} • Manual {todayRetrievalMethodCounts.get("Manual") || 0}</div>
+                      <div className="mt-1 text-[11px] text-blue-100/80">Today’s power-bank retrieval mix</div>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-slate-950/30 p-4">
+                      <div className="text-[10px] font-black uppercase tracking-wider text-white/60">Retrievals</div>
+                      <div className="mt-2 text-2xl font-black text-white">{todayRetrievals}</div>
+                      <div className="mt-1 text-[11px] text-white/60">Completed handovers today</div>
                     </div>
                   </div>
                 </div>
