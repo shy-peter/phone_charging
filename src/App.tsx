@@ -66,7 +66,7 @@ import {
   appwriteUpsertPowerBank,
   appwriteUpsertRental,
 } from "./utils/appwriteClient";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import registrationAnimation from "../Untitled file.gif";
 
 type AgentInvite = {
   id: string;
@@ -357,7 +357,7 @@ function App() {
     if (newest.id !== lastOpsConsoleToastDeviceIdRef.current) {
       lastOpsConsoleToastDeviceIdRef.current = newest.id;
       setThankYouToast({ name: newest.username, at: Date.now() });
-      setTimeout(() => setThankYouToast(null), 2000);
+      setTimeout(() => setThankYouToast(null), 3500);
     }
   }, [activeTab, opsConsoleUnlocked, registeredDevices]);
 
@@ -3562,8 +3562,12 @@ function App() {
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-black/30" />
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-[520px] max-w-[92vw]">
-                <DotLottieReact src="/ops-console.lottie" loop autoplay />
+              <div className="w-[520px] max-w-[92vw] rounded-3xl bg-white/90 p-3 shadow-2xl ring-1 ring-white/60 backdrop-blur-md">
+                <img
+                  src={registrationAnimation}
+                  alt="Registration success animation"
+                  className="w-full h-auto max-h-[320px] object-contain rounded-2xl"
+                />
               </div>
             </div>
           </div>
