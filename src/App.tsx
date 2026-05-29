@@ -1557,7 +1557,11 @@ function App() {
                 {recentActivities.map((activity) => (
                   <div
                     key={`${activity.type}-${activity.title}-${activity.timestamp.getTime()}`}
-                    className="rounded-xl border border-gray-100 bg-white px-4 py-3"
+                    className={`rounded-xl border px-4 py-3 ${
+                      activity.type === "Retrieved"
+                        ? "border-red-100 bg-red-50"
+                        : "border-emerald-100 bg-emerald-50"
+                    }`}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
@@ -1572,7 +1576,13 @@ function App() {
                         <p className="text-sm font-bold text-gray-900">
                           ₦{activity.amount.toLocaleString()}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p
+                          className={`text-xs mt-1 ${
+                            activity.type === "Retrieved"
+                              ? "text-red-700"
+                              : "text-emerald-700"
+                          }`}
+                        >
                           {activity.type}
                         </p>
                       </div>
